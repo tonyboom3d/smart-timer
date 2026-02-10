@@ -119,6 +119,13 @@ export interface TimeRemaining {
   progress: number;
 }
 
+export interface TimerTemplate {
+  id: string;
+  name: string;
+  config: TimerConfig;
+  updatedAt?: string;
+}
+
 export interface PostMessageInit {
   type: "INIT_WIDGET";
   payload: {
@@ -136,7 +143,33 @@ export interface PostMessageUpdate {
   };
 }
 
-export type IncomingMessage = PostMessageInit | PostMessageUpdate;
+export interface PostMessageTemplatesList {
+  type: "TEMPLATES_LIST";
+  payload: { templates: TimerTemplate[] };
+}
+
+export interface PostMessageTemplateData {
+  type: "TEMPLATE_DATA";
+  payload: TimerTemplate;
+}
+
+export interface PostMessageTemplateSaved {
+  type: "TEMPLATE_SAVED";
+  payload: TimerTemplate;
+}
+
+export interface PostMessageTemplateDeleted {
+  type: "TEMPLATE_DELETED";
+  payload: { id: string };
+}
+
+export type IncomingMessage =
+  | PostMessageInit
+  | PostMessageUpdate
+  | PostMessageTemplatesList
+  | PostMessageTemplateData
+  | PostMessageTemplateSaved
+  | PostMessageTemplateDeleted;
 
 export interface OutgoingReady {
   type: "WIDGET_READY";
@@ -156,11 +189,34 @@ export interface OutgoingHeightChange {
   payload: { height: number };
 }
 
+export interface OutgoingRequestTemplates {
+  type: "REQUEST_TEMPLATES";
+}
+
+export interface OutgoingSaveTemplate {
+  type: "SAVE_TEMPLATE";
+  payload: { id?: string; name: string; config: TimerConfig };
+}
+
+export interface OutgoingDeleteTemplate {
+  type: "DELETE_TEMPLATE";
+  payload: { id: string };
+}
+
+export interface OutgoingLoadTemplate {
+  type: "LOAD_TEMPLATE";
+  payload: { id: string };
+}
+
 export type OutgoingMessage =
   | OutgoingReady
   | OutgoingComplete
   | OutgoingSaveConfig
-  | OutgoingHeightChange;
+  | OutgoingHeightChange
+  | OutgoingRequestTemplates
+  | OutgoingSaveTemplate
+  | OutgoingDeleteTemplate
+  | OutgoingLoadTemplate;
 
 export const THEME_PRESETS: Record<ThemePreset, Partial<TimerConfig>> = {
   "minimal-white": {
