@@ -73,11 +73,31 @@ export function TimerDisplay() {
 
   const ariaLabel = buildAriaLabel(time, config);
 
+  const getBackgroundStyle = (): React.CSSProperties => {
+    if (config.backgroundStyle === "transparent") {
+      return { backgroundColor: "transparent" };
+    }
+    if (config.backgroundStyle === "glassy") {
+      const opacity = config.glassOpacity !== undefined ? config.glassOpacity : 0.3;
+      const blur = config.glassBlur || 10;
+      const hex = config.backgroundColor === "transparent" ? "#ffffff" : config.backgroundColor;
+      const r = parseInt(hex.slice(1, 3), 16) || 255;
+      const g = parseInt(hex.slice(3, 5), 16) || 255;
+      const b = parseInt(hex.slice(5, 7), 16) || 255;
+      return {
+        backgroundColor: `rgba(${r}, ${g}, ${b}, ${opacity})`,
+        backdropFilter: `blur(${blur}px)`,
+        WebkitBackdropFilter: `blur(${blur}px)`,
+      };
+    }
+    return { backgroundColor: config.backgroundColor };
+  };
+
   return (
     <div
       className="flex flex-col items-center w-full"
       style={{
-        backgroundColor: config.backgroundColor,
+        ...getBackgroundStyle(),
         padding: `${config.padding}px`,
         gap: `${config.padding * 0.75}px`,
         direction: config.direction,

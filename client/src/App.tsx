@@ -40,7 +40,7 @@ function App() {
 
     if (params.get("demo") === "true") {
       setIsDemo(true);
-      applyTheme("dark-cyberpunk");
+      applyTheme("minimal-white");
       setConfig({
         headerText: "Flash Sale Ends In",
         subHeaderText: "Don't miss this exclusive offer!",
@@ -52,7 +52,7 @@ function App() {
     const noConfig = !params.get("mode") && !params.get("demo");
     if (noConfig) {
       setIsDemo(true);
-      applyTheme("dark-cyberpunk");
+      applyTheme("minimal-white");
       setConfig({
         headerText: "Flash Sale Ends In",
         subHeaderText: "Don't miss this exclusive offer!",

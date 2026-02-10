@@ -7,6 +7,8 @@ import {
   THEME_PRESETS,
 } from "@shared/schema";
 
+export type Breakpoint = "desktop" | "tablet" | "mobile";
+
 interface TimerState {
   config: TimerConfig;
   timeRemaining: TimeRemaining;
@@ -14,6 +16,8 @@ interface TimerState {
   isComplete: boolean;
   isDemo: boolean;
   appMode: "widget" | "dashboard";
+  activeBreakpoint: Breakpoint;
+  breakpointConfigs: Record<Breakpoint, Partial<TimerConfig>>;
 
   setConfig: (config: Partial<TimerConfig>) => void;
   setTimeRemaining: (time: TimeRemaining) => void;
@@ -23,6 +27,9 @@ interface TimerState {
   setAppMode: (mode: "widget" | "dashboard") => void;
   applyTheme: (theme: ThemePreset) => void;
   resetConfig: () => void;
+  setActiveBreakpoint: (bp: Breakpoint) => void;
+  getConfigForBreakpoint: (bp: Breakpoint) => TimerConfig;
+  copyBreakpointConfig: (from: Breakpoint, to: Breakpoint) => void;
 }
 
 const defaultTime: TimeRemaining = {
@@ -42,17 +49,64 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   isComplete: false,
   isDemo: false,
   appMode: "widget",
+  activeBreakpoint: "desktop",
+  breakpointConfigs: {
+    desktop: {},
+    tablet: {},
+    mobile: {},
+  },
 
   setConfig: (partial) =>
-    set((state) => ({
-      config: { ...state.config, ...partial },
-    })),
+    set((state) => {
+      const newConfig = { ...state.config, ...partial };
+      if (state.config.responsiveMode === "per-breakpoint") {
+        return {
+          config: newConfig,
+          breakpointConfigs: {
+            ...state.breakpointConfigs,
+            [state.activeBreakpoint]: {
+              ...state.breakpointConfigs[state.activeBreakpoint],
+              ...partial,
+            },
+          },
+        };
+      }
+      return { config: newConfig };
+    }),
 
   setTimeRemaining: (time) => set({ timeRemaining: time }),
   setIsRunning: (running) => set({ isRunning: running }),
   setIsComplete: (complete) => set({ isComplete: complete }),
   setIsDemo: (demo) => set({ isDemo: demo }),
   setAppMode: (mode) => set({ appMode: mode }),
+
+  setActiveBreakpoint: (bp) =>
+    set((state) => {
+      if (state.config.responsiveMode === "per-breakpoint") {
+        const bpConfig = state.breakpointConfigs[bp];
+        return {
+          activeBreakpoint: bp,
+          config: { ...state.config, ...bpConfig },
+        };
+      }
+      return { activeBreakpoint: bp };
+    }),
+
+  getConfigForBreakpoint: (bp) => {
+    const state = get();
+    if (state.config.responsiveMode === "per-breakpoint") {
+      return { ...state.config, ...state.breakpointConfigs[bp] };
+    }
+    return state.config;
+  },
+
+  copyBreakpointConfig: (from, to) =>
+    set((state) => ({
+      breakpointConfigs: {
+        ...state.breakpointConfigs,
+        [to]: { ...state.breakpointConfigs[from] },
+      },
+    })),
 
   applyTheme: (theme) => {
     const preset = THEME_PRESETS[theme];
@@ -62,5 +116,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 
   resetConfig: () =>
-    set({ config: TimerConfigSchema.parse({}), isComplete: false }),
+    set({
+      config: TimerConfigSchema.parse({}),
+      isComplete: false,
+      breakpointConfigs: { desktop: {}, tablet: {}, mobile: {} },
+    }),
 }));

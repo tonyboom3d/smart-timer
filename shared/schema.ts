@@ -98,6 +98,13 @@ export const TimerConfigSchema = z.object({
   borderRadius: z.number().default(8),
   padding: z.number().default(24),
   gap: z.number().default(16),
+
+  backgroundStyle: z.enum(["solid", "transparent", "glassy"]).default("solid"),
+  glassBlur: z.number().default(10),
+  glassOpacity: z.number().default(0.3),
+  showGlassPreviewImage: z.boolean().default(false),
+
+  responsiveMode: z.enum(["all", "per-breakpoint"]).default("all"),
 });
 export type TimerConfig = z.infer<typeof TimerConfigSchema>;
 

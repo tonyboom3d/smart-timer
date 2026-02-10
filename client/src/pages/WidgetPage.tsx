@@ -5,8 +5,8 @@ import { DashboardPanel } from "@/components/dashboard/DashboardPanel";
 import { useTimerStore } from "@/lib/store";
 import { THEME_PRESETS, type ThemePreset } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Monitor, Smartphone } from "lucide-react";
-import { useState } from "react";
+import { Monitor, Tablet, Smartphone, GripVertical } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 export default function WidgetPage() {
   const appMode = useTimerStore((s) => s.appMode);
@@ -27,14 +27,168 @@ export default function WidgetPage() {
 }
 
 function DashboardView() {
+  const config = useTimerStore((s) => s.config);
+  const activeBreakpoint = useTimerStore((s) => s.activeBreakpoint);
+  const setActiveBreakpoint = useTimerStore((s) => s.setActiveBreakpoint);
+  const [viewportPreset, setViewportPreset] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [customWidth, setCustomWidth] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const dragSide = useRef<"left" | "right">("right");
+
+  const presetWidths = { desktop: 1280, tablet: 768, mobile: 375 };
+  const currentWidth = customWidth || presetWidths[viewportPreset];
+
+  const handlePreset = (preset: "desktop" | "tablet" | "mobile") => {
+    setViewportPreset(preset);
+    setCustomWidth(null);
+    if (config.responsiveMode === "per-breakpoint") {
+      setActiveBreakpoint(preset);
+    }
+  };
+
+  const handleMouseDown = (side: "left" | "right") => (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragSide.current = side;
+    const startX = e.clientX;
+    const startWidth = currentWidth;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const diff = ev.clientX - startX;
+      const multiplier = side === "right" ? 2 : -2;
+      const newWidth = Math.max(280, Math.min(1400, startWidth + diff * multiplier));
+      setCustomWidth(Math.round(newWidth));
+    };
+
+    const onMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
+
+  const getPreviewBg = () => {
+    if (config.backgroundStyle === "glassy" && config.showGlassPreviewImage) {
+      return {
+        backgroundImage: "url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
+    }
+    return { background: "#f3f4f6" };
+  };
+
   return (
-    <div className="flex h-screen" style={{ background: "#0a0a12" }}>
-      <div className="flex-1 flex items-center justify-center p-6" style={{ background: "#111118" }}>
-        <div className="w-full max-w-2xl">
-          <TimerDisplay />
+    <div className="flex h-screen" style={{ background: "#f9fafb" }}>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div
+          className="flex items-center justify-between gap-2 px-4 py-2 border-b shrink-0"
+          style={{ borderColor: "#e5e7eb", background: "#ffffff" }}
+        >
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-medium mr-2" style={{ color: "#6b7280" }}>Viewport:</span>
+            <button
+              onClick={() => handlePreset("desktop")}
+              className="p-1.5 rounded-md transition-colors"
+              style={{
+                background: viewportPreset === "desktop" && !customWidth ? "#eef2ff" : "transparent",
+                color: viewportPreset === "desktop" && !customWidth ? "#4f46e5" : "#9ca3af",
+              }}
+              data-testid="button-viewport-desktop"
+            >
+              <Monitor className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handlePreset("tablet")}
+              className="p-1.5 rounded-md transition-colors"
+              style={{
+                background: viewportPreset === "tablet" && !customWidth ? "#eef2ff" : "transparent",
+                color: viewportPreset === "tablet" && !customWidth ? "#4f46e5" : "#9ca3af",
+              }}
+              data-testid="button-viewport-tablet"
+            >
+              <Tablet className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handlePreset("mobile")}
+              className="p-1.5 rounded-md transition-colors"
+              style={{
+                background: viewportPreset === "mobile" && !customWidth ? "#eef2ff" : "transparent",
+                color: viewportPreset === "mobile" && !customWidth ? "#4f46e5" : "#9ca3af",
+              }}
+              data-testid="button-viewport-mobile"
+            >
+              <Smartphone className="w-4 h-4" />
+            </button>
+          </div>
+          <span className="text-xs tabular-nums" style={{ color: "#9ca3af" }}>
+            {currentWidth}px
+          </span>
+        </div>
+
+        <div
+          className="flex-1 flex items-center justify-center p-6 overflow-auto"
+          style={getPreviewBg()}
+          ref={containerRef}
+        >
+          <div className="flex items-center" style={{ position: "relative" }}>
+            <div
+              className="flex items-center justify-center cursor-col-resize select-none shrink-0"
+              onMouseDown={handleMouseDown("left")}
+              style={{
+                width: "16px",
+                color: "#d1d5db",
+              }}
+              data-testid="resize-handle-left"
+            >
+              <GripVertical className="w-4 h-4" />
+            </div>
+
+            <div
+              className="transition-[width] duration-200 ease-out"
+              style={{
+                width: `${Math.min(currentWidth, (containerRef.current?.clientWidth || 1400) - 60)}px`,
+                minWidth: "280px",
+                borderRadius: "8px",
+                overflow: "hidden",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04)",
+                border: "1px solid #e5e7eb",
+              }}
+              data-testid="preview-container"
+            >
+              <TimerDisplay />
+            </div>
+
+            <div
+              className="flex items-center justify-center cursor-col-resize select-none shrink-0"
+              onMouseDown={handleMouseDown("right")}
+              style={{
+                width: "16px",
+                color: "#d1d5db",
+              }}
+              data-testid="resize-handle-right"
+            >
+              <GripVertical className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="flex items-center justify-center px-4 py-2 border-t shrink-0"
+          style={{ borderColor: "#e5e7eb", background: "#ffffff" }}
+        >
+          <p className="text-[11px]" style={{ color: "#9ca3af" }}>
+            Drag the handles on either side to manually resize the preview. Settings can be configured per screen size.
+          </p>
         </div>
       </div>
-      <div className="w-[360px] border-l shrink-0 h-screen overflow-hidden" style={{ borderColor: "#1e1e2a" }}>
+
+      <div className="w-[360px] border-l shrink-0 h-screen overflow-hidden" style={{ borderColor: "#e5e7eb" }}>
         <DashboardPanel />
       </div>
     </div>
@@ -46,11 +200,46 @@ function DemoView() {
   const config = useTimerStore((s) => s.config);
   const setAppMode = useTimerStore((s) => s.setAppMode);
   const setConfig = useTimerStore((s) => s.setConfig);
-  const [viewportSize, setViewportSize] = useState<"desktop" | "mobile">("desktop");
+  const [viewportPreset, setViewportPreset] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [customWidth, setCustomWidth] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const presetWidths = { desktop: 1280, tablet: 768, mobile: 375 };
+  const currentWidth = customWidth || presetWidths[viewportPreset];
+
+  const handlePreset = (preset: "desktop" | "tablet" | "mobile") => {
+    setViewportPreset(preset);
+    setCustomWidth(null);
+  };
+
+  const handleMouseDown = (side: "left" | "right") => (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    const startX = e.clientX;
+    const startWidth = currentWidth;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const diff = ev.clientX - startX;
+      const multiplier = side === "right" ? 2 : -2;
+      const newWidth = Math.max(280, Math.min(1400, startWidth + diff * multiplier));
+      setCustomWidth(Math.round(newWidth));
+    };
+
+    const onMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
 
   const themes: Array<{ id: ThemePreset; name: string }> = [
-    { id: "dark-cyberpunk", name: "Cyberpunk" },
     { id: "minimal-white", name: "Minimal" },
+    { id: "dark-cyberpunk", name: "Cyberpunk" },
     { id: "urgent-red", name: "Urgent" },
     { id: "soft-pastel", name: "Pastel" },
     { id: "corporate-blue", name: "Corporate" },
@@ -65,37 +254,48 @@ function DemoView() {
     });
   };
 
+  const getPreviewBg = () => {
+    if (config.backgroundStyle === "glassy" && config.showGlassPreviewImage) {
+      return {
+        backgroundImage: "url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80)",
+        backgroundSize: "cover" as const,
+        backgroundPosition: "center" as const,
+      };
+    }
+    return { background: "#f3f4f6" };
+  };
+
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: "#08080e" }}
+      style={{ background: "#f9fafb" }}
     >
       <header
         className="flex items-center justify-between gap-4 px-6 py-3 border-b shrink-0"
-        style={{ borderColor: "#1a1a28", background: "#0c0c16" }}
+        style={{ borderColor: "#e5e7eb", background: "#ffffff" }}
       >
         <div className="flex items-center gap-3">
           <div
             className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold"
-            style={{ background: "#5b5bff", color: "#fff" }}
+            style={{ background: "#4f46e5", color: "#fff" }}
           >
             CT
           </div>
-          <span className="text-sm font-semibold" style={{ color: "#e0e0f0" }}>
+          <span className="text-sm font-semibold" style={{ color: "#111827" }}>
             Countdown Timer Widget
           </span>
           <span
             className="text-xs px-2 py-0.5 rounded-md"
-            style={{ background: "#1a1a2e", color: "#7c7cff" }}
+            style={{ background: "#eef2ff", color: "#4f46e5" }}
           >
             Demo Mode
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div
             className="flex items-center rounded-md p-0.5"
-            style={{ background: "#1a1a24" }}
+            style={{ background: "#f3f4f6" }}
           >
             {themes.map((t) => (
               <button
@@ -103,8 +303,9 @@ function DemoView() {
                 onClick={() => handleThemeChange(t.id)}
                 className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
                 style={{
-                  background: config.theme === t.id ? "#2a2a4a" : "transparent",
-                  color: config.theme === t.id ? "#ffffff" : "#888899",
+                  background: config.theme === t.id ? "#ffffff" : "transparent",
+                  color: config.theme === t.id ? "#111827" : "#6b7280",
+                  boxShadow: config.theme === t.id ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
                 }}
                 data-testid={`demo-theme-${t.id}`}
               >
@@ -115,36 +316,52 @@ function DemoView() {
 
           <div
             className="flex items-center rounded-md p-0.5 ml-2"
-            style={{ background: "#1a1a24" }}
+            style={{ background: "#f3f4f6" }}
           >
             <button
-              onClick={() => setViewportSize("desktop")}
+              onClick={() => handlePreset("desktop")}
               className="p-1.5 rounded transition-colors"
               style={{
-                background: viewportSize === "desktop" ? "#2a2a4a" : "transparent",
-                color: viewportSize === "desktop" ? "#ffffff" : "#888899",
+                background: viewportPreset === "desktop" && !customWidth ? "#ffffff" : "transparent",
+                color: viewportPreset === "desktop" && !customWidth ? "#4f46e5" : "#9ca3af",
+                boxShadow: viewportPreset === "desktop" && !customWidth ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
               }}
               data-testid="button-viewport-desktop"
             >
               <Monitor className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setViewportSize("mobile")}
+              onClick={() => handlePreset("tablet")}
               className="p-1.5 rounded transition-colors"
               style={{
-                background: viewportSize === "mobile" ? "#2a2a4a" : "transparent",
-                color: viewportSize === "mobile" ? "#ffffff" : "#888899",
+                background: viewportPreset === "tablet" && !customWidth ? "#ffffff" : "transparent",
+                color: viewportPreset === "tablet" && !customWidth ? "#4f46e5" : "#9ca3af",
+                boxShadow: viewportPreset === "tablet" && !customWidth ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+              }}
+              data-testid="button-viewport-tablet"
+            >
+              <Tablet className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handlePreset("mobile")}
+              className="p-1.5 rounded transition-colors"
+              style={{
+                background: viewportPreset === "mobile" && !customWidth ? "#ffffff" : "transparent",
+                color: viewportPreset === "mobile" && !customWidth ? "#4f46e5" : "#9ca3af",
+                boxShadow: viewportPreset === "mobile" && !customWidth ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
               }}
               data-testid="button-viewport-mobile"
             >
               <Smartphone className="w-4 h-4" />
             </button>
+            <span className="text-[10px] tabular-nums px-2" style={{ color: "#9ca3af" }}>
+              {currentWidth}px
+            </span>
           </div>
 
           <Button
             size="sm"
             onClick={() => setAppMode("dashboard")}
-            style={{ background: "#5b5bff", color: "#fff" }}
             className="ml-2"
             data-testid="button-open-dashboard"
           >
@@ -153,32 +370,53 @@ function DemoView() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-8">
-        <div
-          className="transition-all duration-500 ease-out"
-          style={{
-            width: viewportSize === "mobile" ? "375px" : "100%",
-            maxWidth: viewportSize === "mobile" ? "375px" : "800px",
-            borderRadius: "12px",
-            overflow: "hidden",
-            boxShadow: "0 0 60px rgba(91, 91, 255, 0.06), 0 0 120px rgba(0, 0, 0, 0.3)",
-            border: "1px solid #1a1a28",
-          }}
-        >
-          <TimerDisplay />
+      <main className="flex-1 flex items-center justify-center p-8 overflow-auto" style={getPreviewBg()} ref={containerRef}>
+        <div className="flex items-center">
+          <div
+            className="flex items-center justify-center cursor-col-resize select-none shrink-0"
+            onMouseDown={handleMouseDown("left")}
+            style={{ width: "20px", color: "#d1d5db" }}
+            data-testid="resize-handle-left"
+          >
+            <GripVertical className="w-4 h-4" />
+          </div>
+
+          <div
+            className="transition-[width] duration-200 ease-out"
+            style={{
+              width: `${Math.min(currentWidth, (containerRef.current?.clientWidth || 1400) - 80)}px`,
+              minWidth: "280px",
+              borderRadius: "8px",
+              overflow: "hidden",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)",
+              border: "1px solid #e5e7eb",
+            }}
+            data-testid="preview-container"
+          >
+            <TimerDisplay />
+          </div>
+
+          <div
+            className="flex items-center justify-center cursor-col-resize select-none shrink-0"
+            onMouseDown={handleMouseDown("right")}
+            style={{ width: "20px", color: "#d1d5db" }}
+            data-testid="resize-handle-right"
+          >
+            <GripVertical className="w-4 h-4" />
+          </div>
         </div>
       </main>
 
       <footer
         className="flex items-center justify-center gap-4 px-6 py-3 border-t shrink-0"
-        style={{ borderColor: "#1a1a28", color: "#555566" }}
+        style={{ borderColor: "#e5e7eb", color: "#9ca3af", background: "#ffffff" }}
       >
         <span className="text-xs">
-          Navigate to <code className="px-1 py-0.5 rounded text-xs" style={{ background: "#1a1a24", color: "#7c7cff" }}>/dashboard</code> for full settings panel
+          Drag handles to resize preview
         </span>
-        <span style={{ color: "#2a2a3a" }}>|</span>
+        <span style={{ color: "#d1d5db" }}>|</span>
         <span className="text-xs">
-          Add <code className="px-1 py-0.5 rounded text-xs" style={{ background: "#1a1a24", color: "#7c7cff" }}>?demo=true</code> for demo mode
+          Navigate to <code className="px-1 py-0.5 rounded text-xs" style={{ background: "#f3f4f6", color: "#4f46e5" }}>/dashboard</code> for full settings panel
         </span>
       </footer>
     </div>

@@ -1,4 +1,4 @@
-import { useTimerStore } from "@/lib/store";
+import { useTimerStore, type Breakpoint } from "@/lib/store";
 import { FONT_OPTIONS, THEME_PRESETS, type ThemePreset } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -9,25 +9,35 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2 } from "lucide-react";
+import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2, Monitor, Tablet, Smartphone, Copy, ArrowRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
 
 export function DashboardPanel() {
   const config = useTimerStore((s) => s.config);
   const setConfig = useTimerStore((s) => s.setConfig);
   const applyTheme = useTimerStore((s) => s.applyTheme);
   const resetConfig = useTimerStore((s) => s.resetConfig);
+  const activeBreakpoint = useTimerStore((s) => s.activeBreakpoint);
+  const setActiveBreakpoint = useTimerStore((s) => s.setActiveBreakpoint);
+  const copyBreakpointConfig = useTimerStore((s) => s.copyBreakpointConfig);
 
   const handleSave = () => {
     window.parent.postMessage({ type: "SAVE_CONFIG", payload: config }, "*");
   };
 
+  const breakpoints: Array<{ id: Breakpoint; label: string; icon: typeof Monitor }> = [
+    { id: "desktop", label: "Desktop", icon: Monitor },
+    { id: "tablet", label: "Tablet", icon: Tablet },
+    { id: "mobile", label: "Mobile", icon: Smartphone },
+  ];
+
   return (
-    <div className="h-full flex flex-col" style={{ background: "#0f0f13", color: "#e0e0e0" }}>
-      <div className="flex items-center justify-between gap-2 p-4 border-b" style={{ borderColor: "#1e1e2a" }}>
+    <div className="h-full flex flex-col" style={{ background: "#ffffff", color: "#333333" }}>
+      <div className="flex items-center justify-between gap-2 p-4 border-b" style={{ borderColor: "#e5e7eb" }}>
         <div className="flex items-center gap-2">
-          <Settings2 className="w-5 h-5" style={{ color: "#7c7cff" }} />
-          <h2 className="text-base font-semibold" style={{ color: "#ffffff" }}>
+          <Settings2 className="w-5 h-5" style={{ color: "#4f46e5" }} />
+          <h2 className="text-base font-semibold" style={{ color: "#111827" }}>
             Timer Settings
           </h2>
         </div>
@@ -44,7 +54,6 @@ export function DashboardPanel() {
             size="sm"
             onClick={handleSave}
             data-testid="button-save"
-            style={{ background: "#5b5bff", color: "#fff" }}
           >
             <Save className="w-4 h-4 mr-1" />
             Save
@@ -52,12 +61,55 @@ export function DashboardPanel() {
         </div>
       </div>
 
+      {config.responsiveMode === "per-breakpoint" && (
+        <div className="px-4 py-3 border-b" style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}>
+          <div className="flex items-center gap-1 mb-2">
+            {breakpoints.map((bp) => {
+              const Icon = bp.icon;
+              const isActive = activeBreakpoint === bp.id;
+              return (
+                <button
+                  key={bp.id}
+                  onClick={() => setActiveBreakpoint(bp.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                  style={{
+                    background: isActive ? "#4f46e5" : "transparent",
+                    color: isActive ? "#ffffff" : "#6b7280",
+                  }}
+                  data-testid={`breakpoint-${bp.id}`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {bp.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] leading-tight" style={{ color: "#9ca3af" }}>
+            Editing settings for <strong style={{ color: "#4f46e5" }}>{activeBreakpoint}</strong>.
+            Changes apply only to this screen size. Use "Copy to" to apply these settings to other sizes.
+          </p>
+          <div className="flex items-center gap-1 mt-2">
+            {breakpoints.filter(bp => bp.id !== activeBreakpoint).map(bp => (
+              <button
+                key={bp.id}
+                onClick={() => copyBreakpointConfig(activeBreakpoint, bp.id)}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors"
+                style={{ background: "#eef2ff", color: "#4f46e5" }}
+                data-testid={`copy-to-${bp.id}`}
+              >
+                <Copy className="w-3 h-3" />
+                Copy to {bp.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <ScrollArea className="flex-1">
         <div className="p-4">
           <Tabs defaultValue="timer" className="w-full">
             <TabsList
               className="w-full grid grid-cols-5 mb-4"
-              style={{ background: "#1a1a24" }}
             >
               <TabsTrigger value="timer" className="text-xs gap-1" data-testid="tab-timer">
                 <Clock className="w-3 h-3" />
@@ -109,8 +161,8 @@ export function DashboardPanel() {
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card className="p-3 space-y-3" style={{ background: "#15151f", border: "1px solid #1e1e2a" }}>
-      <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#7c7cff" }}>
+    <Card className="p-3 space-y-3" style={{ background: "#f9fafb", border: "1px solid #e5e7eb" }}>
+      <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#4f46e5" }}>
         {title}
       </h3>
       {children}
@@ -121,7 +173,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <Label className="text-xs shrink-0" style={{ color: "#a0a0b0" }}>
+      <Label className="text-xs shrink-0" style={{ color: "#6b7280" }}>
         {label}
       </Label>
       <div className="flex-1 flex justify-end">{children}</div>
@@ -132,6 +184,64 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
 function TimerSettingsTab() {
   const config = useTimerStore((s) => s.config);
   const setConfig = useTimerStore((s) => s.setConfig);
+  const [showCalendar, setShowCalendar] = useState(false);
+
+  const parseDateParts = () => {
+    if (!config.targetDate) {
+      const now = new Date();
+      now.setDate(now.getDate() + 1);
+      return {
+        year: now.getFullYear(),
+        month: now.getMonth(),
+        day: now.getDate(),
+        hour: 12,
+        minute: 0,
+      };
+    }
+    const d = new Date(config.targetDate);
+    if (isNaN(d.getTime())) {
+      const now = new Date();
+      return {
+        year: now.getFullYear(),
+        month: now.getMonth(),
+        day: now.getDate(),
+        hour: 12,
+        minute: 0,
+      };
+    }
+    return {
+      year: d.getFullYear(),
+      month: d.getMonth(),
+      day: d.getDate(),
+      hour: d.getHours(),
+      minute: d.getMinutes(),
+    };
+  };
+
+  const parts = parseDateParts();
+
+  const updateDate = (updates: Partial<typeof parts>) => {
+    const merged = { ...parts, ...updates };
+    const d = new Date(merged.year, merged.month, merged.day, merged.hour, merged.minute);
+    setConfig({ targetDate: d.toISOString() });
+  };
+
+  const daysInMonth = new Date(parts.year, parts.month + 1, 0).getDate();
+  const firstDayOfWeek = new Date(parts.year, parts.month, 1).getDay();
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  const formatDisplayDate = () => {
+    if (!config.targetDate) return "Select date & time";
+    const d = new Date(config.targetDate);
+    if (isNaN(d.getTime())) return "Select date & time";
+    return `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} at ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
 
   return (
     <>
@@ -141,10 +251,10 @@ function TimerSettingsTab() {
             value={config.mode}
             onValueChange={(v) => setConfig({ mode: v as "fixed" | "evergreen" })}
           >
-            <SelectTrigger className="w-[160px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-mode">
+            <SelectTrigger className="w-[160px]" data-testid="select-mode">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+            <SelectContent>
               <SelectItem value="fixed">Fixed Date</SelectItem>
               <SelectItem value="evergreen">Evergreen</SelectItem>
             </SelectContent>
@@ -152,16 +262,123 @@ function TimerSettingsTab() {
         </SettingRow>
 
         {config.mode === "fixed" && (
-          <SettingRow label="Target Date">
-            <Input
-              type="datetime-local"
-              value={config.targetDate}
-              onChange={(e) => setConfig({ targetDate: e.target.value })}
-              style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
-              className="w-[200px]"
-              data-testid="input-target-date"
-            />
-          </SettingRow>
+          <div className="space-y-2">
+            <Label className="text-xs" style={{ color: "#6b7280" }}>Target Date & Time</Label>
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className="w-full text-left px-3 py-2 rounded-md text-sm border"
+              style={{
+                background: "#ffffff",
+                border: "1px solid #d1d5db",
+                color: "#111827",
+              }}
+              data-testid="button-open-calendar"
+            >
+              {formatDisplayDate()}
+            </button>
+
+            {showCalendar && (
+              <div
+                className="rounded-md p-3 space-y-3"
+                style={{ background: "#ffffff", border: "1px solid #d1d5db" }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => {
+                      const newMonth = parts.month - 1;
+                      if (newMonth < 0) updateDate({ month: 11, year: parts.year - 1 });
+                      else updateDate({ month: newMonth });
+                    }}
+                    className="p-1 rounded hover-elevate"
+                    style={{ color: "#6b7280" }}
+                    data-testid="button-prev-month"
+                  >
+                    &larr;
+                  </button>
+                  <span className="text-sm font-medium" style={{ color: "#111827" }}>
+                    {monthNames[parts.month]} {parts.year}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const newMonth = parts.month + 1;
+                      if (newMonth > 11) updateDate({ month: 0, year: parts.year + 1 });
+                      else updateDate({ month: newMonth });
+                    }}
+                    className="p-1 rounded hover-elevate"
+                    style={{ color: "#6b7280" }}
+                    data-testid="button-next-month"
+                  >
+                    &rarr;
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-7 gap-0.5 text-center">
+                  {dayNames.map((dn) => (
+                    <div key={dn} className="text-[10px] font-medium py-1" style={{ color: "#9ca3af" }}>
+                      {dn}
+                    </div>
+                  ))}
+                  {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                    <div key={`empty-${i}`} />
+                  ))}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const isSelected = day === parts.day;
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => updateDate({ day })}
+                        className="text-xs py-1.5 rounded-md transition-colors"
+                        style={{
+                          background: isSelected ? "#4f46e5" : "transparent",
+                          color: isSelected ? "#ffffff" : "#374151",
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                        data-testid={`calendar-day-${day}`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-2 pt-2" style={{ borderTop: "1px solid #e5e7eb" }}>
+                  <Label className="text-xs shrink-0" style={{ color: "#6b7280" }}>Time:</Label>
+                  <Select
+                    value={String(parts.hour)}
+                    onValueChange={(v) => updateDate({ hour: parseInt(v) })}
+                  >
+                    <SelectTrigger className="w-[70px]" data-testid="select-hour">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }).map((_, i) => (
+                        <SelectItem key={i} value={String(i)}>
+                          {String(i).padStart(2, "0")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm font-medium" style={{ color: "#374151" }}>:</span>
+                  <Select
+                    value={String(parts.minute)}
+                    onValueChange={(v) => updateDate({ minute: parseInt(v) })}
+                  >
+                    <SelectTrigger className="w-[70px]" data-testid="select-minute">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 60 }).map((_, i) => (
+                        <SelectItem key={i} value={String(i)}>
+                          {String(i).padStart(2, "0")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {config.mode === "evergreen" && (
@@ -174,7 +391,6 @@ function TimerSettingsTab() {
                 onChange={(e) =>
                   setConfig({ evergreenDuration: parseInt(e.target.value || "15") * 60000 })
                 }
-                style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
                 className="w-[100px]"
                 data-testid="input-duration"
               />
@@ -187,7 +403,6 @@ function TimerSettingsTab() {
                 onChange={(e) =>
                   setConfig({ evergreenResetAfter: parseInt(e.target.value || "24") * 3600000 })
                 }
-                style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
                 className="w-[100px]"
                 data-testid="input-reset-after"
               />
@@ -242,7 +457,6 @@ function TimerSettingsTab() {
               onChange={(e) =>
                 setConfig({ labels: { ...config.labels, [unit]: e.target.value } })
               }
-              style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
               className="w-[120px]"
               data-testid={`input-label-${unit}`}
             />
@@ -279,8 +493,8 @@ function ThemeSettingsTab() {
                 onClick={() => applyTheme(theme.id)}
                 className="flex items-center gap-3 p-2 rounded-md text-left transition-colors"
                 style={{
-                  background: isActive ? "#2a2a4a" : "#1a1a24",
-                  border: isActive ? "1px solid #5b5bff" : "1px solid #2a2a3a",
+                  background: isActive ? "#eef2ff" : "#ffffff",
+                  border: isActive ? "1px solid #4f46e5" : "1px solid #e5e7eb",
                 }}
                 data-testid={`theme-${theme.id}`}
               >
@@ -289,12 +503,12 @@ function ThemeSettingsTab() {
                   style={{
                     background: theme.preview,
                     color: preset.numberTypography?.color,
-                    border: "1px solid #2a2a3a",
+                    border: "1px solid #d1d5db",
                   }}
                 >
                   12
                 </div>
-                <span className="text-xs font-medium" style={{ color: isActive ? "#ffffff" : "#a0a0b0" }}>
+                <span className="text-xs font-medium" style={{ color: isActive ? "#111827" : "#6b7280" }}>
                   {theme.name}
                 </span>
               </button>
@@ -308,7 +522,7 @@ function ThemeSettingsTab() {
           <div className="flex items-center gap-2">
             <input
               type="color"
-              value={config.backgroundColor === "transparent" ? "#000000" : config.backgroundColor}
+              value={config.backgroundColor === "transparent" ? "#ffffff" : config.backgroundColor}
               onChange={(e) => setConfig({ backgroundColor: e.target.value })}
               className="w-8 h-8 rounded cursor-pointer border-0"
               data-testid="color-background"
@@ -317,7 +531,6 @@ function ThemeSettingsTab() {
               value={config.backgroundColor}
               onChange={(e) => setConfig({ backgroundColor: e.target.value })}
               className="w-[100px] text-xs"
-              style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
             />
           </div>
         </SettingRow>
@@ -334,7 +547,6 @@ function ThemeSettingsTab() {
               value={config.digitBackground}
               onChange={(e) => setConfig({ digitBackground: e.target.value })}
               className="w-[100px] text-xs"
-              style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
             />
           </div>
         </SettingRow>
@@ -351,10 +563,68 @@ function ThemeSettingsTab() {
               value={config.separatorColor}
               onChange={(e) => setConfig({ separatorColor: e.target.value })}
               className="w-[100px] text-xs"
-              style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
             />
           </div>
         </SettingRow>
+      </SectionCard>
+
+      <SectionCard title="Background Style">
+        <SettingRow label="Type">
+          <Select
+            value={config.backgroundStyle || "solid"}
+            onValueChange={(v) => setConfig({ backgroundStyle: v as any })}
+          >
+            <SelectTrigger className="w-[140px]" data-testid="select-bg-style">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="solid">Solid Color</SelectItem>
+              <SelectItem value="transparent">Transparent</SelectItem>
+              <SelectItem value="glassy">Glassy / Blur</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+
+        {config.backgroundStyle === "glassy" && (
+          <>
+            <SettingRow label="Blur Amount">
+              <div className="flex items-center gap-2 w-[160px]">
+                <Slider
+                  value={[config.glassBlur || 10]}
+                  onValueChange={([v]) => setConfig({ glassBlur: v })}
+                  min={2}
+                  max={30}
+                  step={1}
+                  data-testid="slider-glass-blur"
+                />
+                <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>{config.glassBlur || 10}px</span>
+              </div>
+            </SettingRow>
+            <SettingRow label="Opacity">
+              <div className="flex items-center gap-2 w-[160px]">
+                <Slider
+                  value={[config.glassOpacity !== undefined ? config.glassOpacity : 0.3]}
+                  onValueChange={([v]) => setConfig({ glassOpacity: v })}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  data-testid="slider-glass-opacity"
+                />
+                <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>{Math.round((config.glassOpacity !== undefined ? config.glassOpacity : 0.3) * 100)}%</span>
+              </div>
+            </SettingRow>
+            <SettingRow label="Preview Image">
+              <Switch
+                checked={config.showGlassPreviewImage || false}
+                onCheckedChange={(v) => setConfig({ showGlassPreviewImage: v })}
+                data-testid="switch-glass-preview"
+              />
+            </SettingRow>
+            <p className="text-[10px]" style={{ color: "#9ca3af" }}>
+              Enable preview image to see how glassy the background looks over content.
+            </p>
+          </>
+        )}
       </SectionCard>
 
       <SectionCard title="Layout">
@@ -363,10 +633,10 @@ function ThemeSettingsTab() {
             value={config.direction}
             onValueChange={(v) => setConfig({ direction: v as "ltr" | "rtl" })}
           >
-            <SelectTrigger className="w-[120px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-direction">
+            <SelectTrigger className="w-[120px]" data-testid="select-direction">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+            <SelectContent>
               <SelectItem value="ltr">LTR (English)</SelectItem>
               <SelectItem value="rtl">RTL (Hebrew)</SelectItem>
             </SelectContent>
@@ -382,7 +652,7 @@ function ThemeSettingsTab() {
               step={1}
               data-testid="slider-border-radius"
             />
-            <span className="text-xs w-8 text-right" style={{ color: "#a0a0b0" }}>{config.borderRadius}</span>
+            <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>{config.borderRadius}</span>
           </div>
         </SettingRow>
         <SettingRow label="Padding">
@@ -395,7 +665,7 @@ function ThemeSettingsTab() {
               step={2}
               data-testid="slider-padding"
             />
-            <span className="text-xs w-8 text-right" style={{ color: "#a0a0b0" }}>{config.padding}</span>
+            <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>{config.padding}</span>
           </div>
         </SettingRow>
         <SettingRow label="Gap">
@@ -408,7 +678,7 @@ function ThemeSettingsTab() {
               step={2}
               data-testid="slider-gap"
             />
-            <span className="text-xs w-8 text-right" style={{ color: "#a0a0b0" }}>{config.gap}</span>
+            <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>{config.gap}</span>
           </div>
         </SettingRow>
       </SectionCard>
@@ -430,10 +700,10 @@ function TypographySettingsTab() {
               setConfig({ numberTypography: { ...config.numberTypography, fontFamily: v } })
             }
           >
-            <SelectTrigger className="w-[160px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-number-font">
+            <SelectTrigger className="w-[160px]" data-testid="select-number-font">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+            <SelectContent>
               {FONT_OPTIONS.map((font) => (
                 <SelectItem key={font} value={font}>
                   <span style={{ fontFamily: font }}>{font}</span>
@@ -454,7 +724,7 @@ function TypographySettingsTab() {
               step={2}
               data-testid="slider-number-size"
             />
-            <span className="text-xs w-8 text-right" style={{ color: "#a0a0b0" }}>
+            <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>
               {config.numberTypography.fontSize}
             </span>
           </div>
@@ -466,10 +736,10 @@ function TypographySettingsTab() {
               setConfig({ numberTypography: { ...config.numberTypography, fontWeight: parseInt(v) } })
             }
           >
-            <SelectTrigger className="w-[120px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-number-weight">
+            <SelectTrigger className="w-[120px]" data-testid="select-number-weight">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+            <SelectContent>
               {[300, 400, 500, 600, 700, 800, 900].map((w) => (
                 <SelectItem key={w} value={String(w)}>
                   {w}
@@ -501,10 +771,10 @@ function TypographySettingsTab() {
               setConfig({ labelTypography: { ...config.labelTypography, fontFamily: v } })
             }
           >
-            <SelectTrigger className="w-[160px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-label-font">
+            <SelectTrigger className="w-[160px]" data-testid="select-label-font">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+            <SelectContent>
               {FONT_OPTIONS.map((font) => (
                 <SelectItem key={font} value={font}>
                   <span style={{ fontFamily: font }}>{font}</span>
@@ -525,7 +795,7 @@ function TypographySettingsTab() {
               step={1}
               data-testid="slider-label-size"
             />
-            <span className="text-xs w-8 text-right" style={{ color: "#a0a0b0" }}>
+            <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>
               {config.labelTypography.fontSize}
             </span>
           </div>
@@ -553,10 +823,10 @@ function TypographySettingsTab() {
               setConfig({ headerTypography: { ...config.headerTypography, fontFamily: v } })
             }
           >
-            <SelectTrigger className="w-[160px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-header-font">
+            <SelectTrigger className="w-[160px]" data-testid="select-header-font">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+            <SelectContent>
               {FONT_OPTIONS.map((font) => (
                 <SelectItem key={font} value={font}>
                   <span style={{ fontFamily: font }}>{font}</span>
@@ -577,7 +847,7 @@ function TypographySettingsTab() {
               step={1}
               data-testid="slider-header-size"
             />
-            <span className="text-xs w-8 text-right" style={{ color: "#a0a0b0" }}>
+            <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>
               {config.headerTypography.fontSize}
             </span>
           </div>
@@ -606,16 +876,38 @@ function DisplaySettingsTab() {
 
   return (
     <>
+      <SectionCard title="Responsive Mode">
+        <SettingRow label="Settings Mode">
+          <Select
+            value={config.responsiveMode}
+            onValueChange={(v) => setConfig({ responsiveMode: v as any })}
+          >
+            <SelectTrigger className="w-[160px]" data-testid="select-responsive-mode">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Same for all sizes</SelectItem>
+              <SelectItem value="per-breakpoint">Per screen size</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+        <p className="text-[10px] leading-tight" style={{ color: "#9ca3af" }}>
+          {config.responsiveMode === "all"
+            ? "The same settings are used for all screen sizes (desktop, tablet, and mobile)."
+            : "Configure different settings for each screen size. Use the breakpoint selector above to switch between Desktop, Tablet, and Mobile. You can copy settings from one size to another."}
+        </p>
+      </SectionCard>
+
       <SectionCard title="Animation">
         <SettingRow label="Style">
           <Select
             value={config.animationStyle}
             onValueChange={(v) => setConfig({ animationStyle: v as any })}
           >
-            <SelectTrigger className="w-[140px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-animation">
+            <SelectTrigger className="w-[140px]" data-testid="select-animation">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+            <SelectContent>
               <SelectItem value="flip">Flip Clock</SelectItem>
               <SelectItem value="slide">Slide</SelectItem>
               <SelectItem value="fade">Fade</SelectItem>
@@ -631,10 +923,10 @@ function DisplaySettingsTab() {
             value={config.progressStyle}
             onValueChange={(v) => setConfig({ progressStyle: v as any })}
           >
-            <SelectTrigger className="w-[140px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-progress">
+            <SelectTrigger className="w-[140px]" data-testid="select-progress">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+            <SelectContent>
               <SelectItem value="none">None</SelectItem>
               <SelectItem value="circular">Circular</SelectItem>
               <SelectItem value="linear">Linear Bar</SelectItem>
@@ -645,22 +937,20 @@ function DisplaySettingsTab() {
 
       <SectionCard title="Header & Sub-header">
         <div className="space-y-2">
-          <Label className="text-xs" style={{ color: "#a0a0b0" }}>Header Text</Label>
+          <Label className="text-xs" style={{ color: "#6b7280" }}>Header Text</Label>
           <Input
             value={config.headerText}
             onChange={(e) => setConfig({ headerText: e.target.value })}
             placeholder="e.g. Sale Ends In"
-            style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
             data-testid="input-header-text"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs" style={{ color: "#a0a0b0" }}>Sub-header Text</Label>
+          <Label className="text-xs" style={{ color: "#6b7280" }}>Sub-header Text</Label>
           <Input
             value={config.subHeaderText}
             onChange={(e) => setConfig({ subHeaderText: e.target.value })}
             placeholder="e.g. Don't miss out!"
-            style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
             data-testid="input-subheader-text"
           />
         </div>
@@ -681,10 +971,10 @@ function ActionsSettingsTab() {
             value={config.completionAction}
             onValueChange={(v) => setConfig({ completionAction: v as any })}
           >
-            <SelectTrigger className="w-[160px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-completion-action">
+            <SelectTrigger className="w-[160px]" data-testid="select-completion-action">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+            <SelectContent>
               <SelectItem value="message">Show Message</SelectItem>
               <SelectItem value="redirect">Redirect to URL</SelectItem>
               <SelectItem value="emit">Emit Event</SelectItem>
@@ -695,14 +985,13 @@ function ActionsSettingsTab() {
 
         {config.completionAction === "message" && (
           <div className="space-y-2">
-            <Label className="text-xs" style={{ color: "#a0a0b0" }}>
+            <Label className="text-xs" style={{ color: "#6b7280" }}>
               End Message
             </Label>
             <Textarea
               value={config.completionMessage}
               onChange={(e) => setConfig({ completionMessage: e.target.value })}
               placeholder="Time's Up!"
-              style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
               className="resize-none"
               data-testid="textarea-completion-message"
             />
@@ -712,14 +1001,13 @@ function ActionsSettingsTab() {
         {config.completionAction === "redirect" && (
           <>
             <div className="space-y-2">
-              <Label className="text-xs" style={{ color: "#a0a0b0" }}>
+              <Label className="text-xs" style={{ color: "#6b7280" }}>
                 Redirect URL
               </Label>
               <Input
                 value={config.redirectUrl}
                 onChange={(e) => setConfig({ redirectUrl: e.target.value })}
                 placeholder="https://example.com"
-                style={{ background: "#1a1a24", border: "1px solid #2a2a3a", color: "#e0e0e0" }}
                 data-testid="input-redirect-url"
               />
             </div>
@@ -728,10 +1016,10 @@ function ActionsSettingsTab() {
                 value={config.redirectTarget}
                 onValueChange={(v) => setConfig({ redirectTarget: v as "same" | "new" })}
               >
-                <SelectTrigger className="w-[140px]" style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }} data-testid="select-redirect-target">
+                <SelectTrigger className="w-[140px]" data-testid="select-redirect-target">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent style={{ background: "#1a1a24", border: "1px solid #2a2a3a" }}>
+                <SelectContent>
                   <SelectItem value="same">Same Tab</SelectItem>
                   <SelectItem value="new">New Tab</SelectItem>
                 </SelectContent>
