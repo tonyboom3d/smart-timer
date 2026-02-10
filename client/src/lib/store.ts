@@ -30,6 +30,7 @@ interface TimerState {
   setActiveBreakpoint: (bp: Breakpoint) => void;
   getConfigForBreakpoint: (bp: Breakpoint) => TimerConfig;
   copyBreakpointConfig: (from: Breakpoint, to: Breakpoint) => void;
+  copyToAllBreakpoints: () => void;
 }
 
 const defaultTime: TimeRemaining = {
@@ -107,6 +108,18 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         [to]: { ...state.breakpointConfigs[from] },
       },
     })),
+
+  copyToAllBreakpoints: () =>
+    set((state) => {
+      const currentBpConfig = state.breakpointConfigs[state.activeBreakpoint];
+      return {
+        breakpointConfigs: {
+          desktop: { ...currentBpConfig },
+          tablet: { ...currentBpConfig },
+          mobile: { ...currentBpConfig },
+        },
+      };
+    }),
 
   applyTheme: (theme) => {
     const preset = THEME_PRESETS[theme];
