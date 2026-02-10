@@ -90,46 +90,40 @@ function DashboardView() {
           className="flex items-center justify-between gap-2 px-4 py-2 border-b shrink-0"
           style={{ borderColor: "#e5e7eb", background: "#ffffff" }}
         >
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold mr-2 uppercase tracking-tight" style={{ color: "#4f46e5" }}>Viewport Size:</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-medium mr-2" style={{ color: "#6b7280" }}>Viewport:</span>
             <button
               onClick={() => handlePreset("desktop")}
-              className="p-2 rounded-md transition-all hover:bg-indigo-50"
+              className="p-1.5 rounded-md transition-colors"
               style={{
-                background: viewportPreset === "desktop" && !customWidth ? "#4f46e5" : "transparent",
-                color: viewportPreset === "desktop" && !customWidth ? "#ffffff" : "#4f46e5",
-                border: "1px solid #4f46e5"
+                background: viewportPreset === "desktop" && !customWidth ? "#eef2ff" : "transparent",
+                color: viewportPreset === "desktop" && !customWidth ? "#4f46e5" : "#9ca3af",
               }}
               data-testid="button-viewport-desktop"
-              title="Desktop"
             >
-              <Monitor className="w-5 h-5" />
+              <Monitor className="w-4 h-4" />
             </button>
             <button
               onClick={() => handlePreset("tablet")}
-              className="p-2 rounded-md transition-all hover:bg-indigo-50"
+              className="p-1.5 rounded-md transition-colors"
               style={{
-                background: viewportPreset === "tablet" && !customWidth ? "#4f46e5" : "transparent",
-                color: viewportPreset === "tablet" && !customWidth ? "#ffffff" : "#4f46e5",
-                border: "1px solid #4f46e5"
+                background: viewportPreset === "tablet" && !customWidth ? "#eef2ff" : "transparent",
+                color: viewportPreset === "tablet" && !customWidth ? "#4f46e5" : "#9ca3af",
               }}
               data-testid="button-viewport-tablet"
-              title="Tablet"
             >
-              <Tablet className="w-5 h-5" />
+              <Tablet className="w-4 h-4" />
             </button>
             <button
               onClick={() => handlePreset("mobile")}
-              className="p-2 rounded-md transition-all hover:bg-indigo-50"
+              className="p-1.5 rounded-md transition-colors"
               style={{
-                background: viewportPreset === "mobile" && !customWidth ? "#4f46e5" : "transparent",
-                color: viewportPreset === "mobile" && !customWidth ? "#ffffff" : "#4f46e5",
-                border: "1px solid #4f46e5"
+                background: viewportPreset === "mobile" && !customWidth ? "#eef2ff" : "transparent",
+                color: viewportPreset === "mobile" && !customWidth ? "#4f46e5" : "#9ca3af",
               }}
               data-testid="button-viewport-mobile"
-              title="Smartphone"
             >
-              <Smartphone className="w-5 h-5" />
+              <Smartphone className="w-4 h-4" />
             </button>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 rounded-full border bg-white" style={{ borderColor: "#4f46e5" }}>
@@ -146,26 +140,34 @@ function DashboardView() {
         >
           <div className="flex items-center" style={{ position: "relative" }}>
             <div
-              className="flex items-center justify-center cursor-col-resize select-none shrink-0"
+              className="flex items-center justify-center cursor-col-resize select-none shrink-0 transition-all hover:scale-110 active:scale-95 group"
               onMouseDown={handleMouseDown("left")}
               style={{
-                width: "16px",
-                color: "#d1d5db",
+                width: "24px",
+                height: "64px",
+                background: "#4f46e5",
+                color: "#ffffff",
+                borderRadius: "12px 0 0 12px",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                marginRight: "-1px",
+                zIndex: 20
               }}
               data-testid="resize-handle-left"
             >
-              <GripVertical className="w-4 h-4" />
+              <GripVertical className="w-5 h-5" />
             </div>
 
             <div
               className="transition-[width] duration-200 ease-out"
               style={{
-                width: `${Math.min(currentWidth, (containerRef.current?.clientWidth || 1400) - 60)}px`,
+                width: `${Math.min(currentWidth, (containerRef.current?.clientWidth || 1400) - 80)}px`,
                 minWidth: "280px",
                 borderRadius: "8px",
                 overflow: "hidden",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04)",
-                border: "1px solid #e5e7eb",
+                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                border: "2px solid #4f46e5",
+                zIndex: 10,
+                background: "#ffffff"
               }}
               data-testid="preview-container"
             >
@@ -173,15 +175,21 @@ function DashboardView() {
             </div>
 
             <div
-              className="flex items-center justify-center cursor-col-resize select-none shrink-0"
+              className="flex items-center justify-center cursor-col-resize select-none shrink-0 transition-all hover:scale-110 active:scale-95 group"
               onMouseDown={handleMouseDown("right")}
               style={{
-                width: "16px",
-                color: "#d1d5db",
+                width: "24px",
+                height: "64px",
+                background: "#4f46e5",
+                color: "#ffffff",
+                borderRadius: "0 12px 12px 0",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                marginLeft: "-1px",
+                zIndex: 20
               }}
               data-testid="resize-handle-right"
             >
-              <GripVertical className="w-4 h-4" />
+              <GripVertical className="w-5 h-5" />
             </div>
           </div>
         </div>
