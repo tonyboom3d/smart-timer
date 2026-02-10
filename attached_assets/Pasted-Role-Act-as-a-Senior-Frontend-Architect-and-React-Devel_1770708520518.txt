@@ -1,0 +1,89 @@
+Role: Act as a Senior Frontend Architect and React Developer. Task: Build a high-end, production-ready Countdown Timer Widget intended to run inside an IFrame within a Wix Blocks application.
+
+Architecture Overview:
+
+Host (Wix Velo): Handles backend logic, CMS data, and user identity. It sends configuration data to your widget.
+
+Client (Your Code): A React (Vite) application running in an IFrame. It handles the UI, Animations, Timer Logic, and Settings Dashboard.
+
+Communication: Uses window.postMessage to receive data (INIT, UPDATE) and send events (FINISHED, RESIZE, SAVE).
+
+Core Requirements & Features
+1. Timer Logic Engines (Dual Mode)
+The timer must support two distinct logic modes:
+
+Fixed Date Mode: Counts down to a specific calendar date (e.g., "Jan 1, 2025").
+
+Evergreen / Scarcity Mode: Counts down a specific duration (e.g., "15 minutes") starting from the user's first visit.
+
+Implementation: Use localStorage to store the user's specific startTime. If the user refreshes, the timer continues from where it left off. If the cookie/storage expires, it resets (configurable).
+
+2. Advanced Visuals & Animations
+Flip Clock & Slide Animations: Create smooth, GPU-accelerated transitions for numbers.
+
+Visual Progress: Option to show a Circular Loader or a Linear Progress Bar that depletes as time runs out.
+
+Design Presets: Include 5 built-in themes (e.g., "Minimal White", "Dark Cyberpunk", "Urgent Red", "Soft Pastel", "Corporate Blue") so users don't have to start from scratch.
+
+Responsive: Use container queries or generic responsive CSS (rem/%) to ensure it looks good on mobile and desktop.
+
+RTL/LTR Support: Full support for Hebrew (Right-to-Left) and English layouts.
+
+3. Granular Customization (The "Dashboard")
+Create a "Dashboard Mode" (e.g., accessed via ?mode=dashboard or a prop) that allows editing:
+
+Units: Toggle visibility of Days, Hours, Minutes, Seconds, Milliseconds.
+
+Typography: Change fonts, sizes, weights, and colors for numbers and labels independently.
+
+Texts: Custom labels for time units, Header text, Sub-header, and "Time's Up" message.
+
+Actions: Define what happens when time ends:
+
+Show "End Message".
+
+Redirect to URL (New Tab / Same Tab).
+
+Emit Event to Velo.
+
+Hide the widget.
+
+4. Performance & Accessibility (A11y)
+Performance: Use requestAnimationFrame for the countdown loop to ensure 60FPS performance without blocking the main thread.
+
+Accessibility: Ensure screen readers read the time naturally (e.g., "5 minutes and 30 seconds remaining") using aria-live regions and aria-label, rather than reading raw digits like "five, colon, three, zero".
+
+5. Integration API (postMessage)
+Implement a robust message handler:
+
+Input (window.addEventListener('message', ...)):
+
+type: 'INIT_WIDGET' -> Payload: { config, theme, mode, timezone }
+
+type: 'UPDATE_PREVIEW' -> Payload: { config } (Hot reload styles in dashboard)
+
+Output (window.parent.postMessage(...)):
+
+type: 'WIDGET_READY' -> Sent when React mounts.
+
+type: 'TIMER_COMPLETE' -> Sent when countdown hits 0.
+
+type: 'SAVE_CONFIG' -> Sent from Dashboard to save settings to CMS.
+
+type: 'HEIGHT_CHANGE' -> Sent when DOM size changes (for IFrame resizing).
+
+Technical Constraints
+Framework: React + Vite.
+
+Styling: CSS Modules or Tailwind CSS (preferred for speed).
+
+State Management: React Context or Zustand (for managing the complex settings state).
+
+No Backend: Pure frontend logic.
+
+Deliverables
+Codebase: Full React source code.
+
+Schema: A TypeScript interface or JSON example of the Configuration object.
+
+Demo Data: A "Demo Mode" flag that populates the timer with fake data if no input is received from Wix.
