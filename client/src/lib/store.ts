@@ -111,12 +111,14 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
   copyToAllBreakpoints: () =>
     set((state) => {
-      const currentBpConfig = state.breakpointConfigs[state.activeBreakpoint];
+      const currentConfig = { ...state.config };
+      const { responsiveMode, ...visualConfig } = currentConfig;
       return {
+        config: { ...state.config, responsiveMode: "all" as const },
         breakpointConfigs: {
-          desktop: { ...currentBpConfig },
-          tablet: { ...currentBpConfig },
-          mobile: { ...currentBpConfig },
+          desktop: { ...visualConfig },
+          tablet: { ...visualConfig },
+          mobile: { ...visualConfig },
         },
       };
     }),

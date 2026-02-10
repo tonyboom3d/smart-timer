@@ -4,6 +4,8 @@
 A production-ready, high-performance Countdown Timer Widget built with React + Vite, designed to run inside an IFrame within a Wix Blocks application. Features dual timer modes, flip clock animations, 5 design presets, full customization dashboard, and postMessage API integration.
 
 ## Recent Changes
+- 2026-02-10: Moved breakpoint selector above tab menu with always-visible screen size icons, copy-to/apply-all options, and clear explanatory text. Removed Responsive Mode from Display tab.
+- 2026-02-10: Improved flip clock animation with split-card 3D design, transparent/glassy preview image fixes
 - 2026-02-10: Initial implementation of full widget with all core features
 
 ## Architecture
@@ -23,7 +25,8 @@ This is a pure frontend application. The Express server exists only to serve the
 - **Animations**: Flip clock, slide, fade, none
 - **5 Theme Presets**: Minimal White, Dark Cyberpunk, Urgent Red, Soft Pastel, Corporate Blue
 - **Progress Indicators**: Circular loader, Linear bar, None
-- **Dashboard**: Full settings panel with Timer, Theme, Typography, Display, Actions tabs
+- **Dashboard**: Full settings panel with Timer, Theme, Typography, Display, Actions tabs. Breakpoint selector (Desktop/Tablet/Mobile) always visible above tabs with copy-to and apply-all functionality
+- **Responsive Breakpoints**: Per-breakpoint customization with copy settings between breakpoints and apply-to-all option
 - **PostMessage API**: INIT_WIDGET, UPDATE_PREVIEW (incoming), WIDGET_READY, TIMER_COMPLETE, SAVE_CONFIG, HEIGHT_CHANGE (outgoing)
 - **RTL/LTR Support**: Full Hebrew and English layout support
 - **Accessibility**: aria-live regions, natural time announcements for screen readers

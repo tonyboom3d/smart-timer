@@ -10,9 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2, Monitor, Tablet, Smartphone, Copy, ArrowRight, Info } from "lucide-react";
+import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2, Monitor, Tablet, Smartphone, Copy, CopyCheck, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export function DashboardPanel() {
   const config = useTimerStore((s) => s.config);
@@ -22,6 +22,20 @@ export function DashboardPanel() {
   const activeBreakpoint = useTimerStore((s) => s.activeBreakpoint);
   const setActiveBreakpoint = useTimerStore((s) => s.setActiveBreakpoint);
   const copyBreakpointConfig = useTimerStore((s) => s.copyBreakpointConfig);
+  const copyToAllBreakpoints = useTimerStore((s) => s.copyToAllBreakpoints);
+  const [showCopyMenu, setShowCopyMenu] = useState(false);
+  const copyMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showCopyMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (copyMenuRef.current && !copyMenuRef.current.contains(e.target as Node)) {
+        setShowCopyMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showCopyMenu]);
 
   const handleSave = () => {
     window.parent.postMessage({ type: "SAVE_CONFIG", payload: config }, "*");
@@ -32,6 +46,8 @@ export function DashboardPanel() {
     { id: "tablet", label: "Tablet", icon: Tablet },
     { id: "mobile", label: "Mobile", icon: Smartphone },
   ];
+
+  const isPerBreakpoint = config.responsiveMode === "per-breakpoint";
 
   return (
     <div className="h-full flex flex-col" style={{ background: "#ffffff", color: "#333333" }}>
@@ -62,49 +78,120 @@ export function DashboardPanel() {
         </div>
       </div>
 
-      {config.responsiveMode === "per-breakpoint" && (
-        <div className="px-4 py-3 border-b" style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}>
-          <div className="flex items-center gap-1 mb-2">
+      <div className="px-4 py-3 border-b" style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1">
             {breakpoints.map((bp) => {
               const Icon = bp.icon;
               const isActive = activeBreakpoint === bp.id;
               return (
                 <button
                   key={bp.id}
-                  onClick={() => setActiveBreakpoint(bp.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                  onClick={() => {
+                    if (!isPerBreakpoint) {
+                      const { responsiveMode, ...visualConfig } = config;
+                      useTimerStore.setState({
+                        breakpointConfigs: {
+                          desktop: { ...visualConfig },
+                          tablet: { ...visualConfig },
+                          mobile: { ...visualConfig },
+                        },
+                      });
+                      setConfig({ responsiveMode: "per-breakpoint" });
+                    }
+                    setActiveBreakpoint(bp.id);
+                  }}
+                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md text-[10px] font-medium transition-colors"
                   style={{
                     background: isActive ? "#4f46e5" : "transparent",
                     color: isActive ? "#ffffff" : "#6b7280",
+                    minWidth: "56px",
                   }}
                   data-testid={`breakpoint-${bp.id}`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="w-4 h-4" />
                   {bp.label}
                 </button>
               );
             })}
           </div>
-          <p className="text-[10px] leading-tight" style={{ color: "#9ca3af" }}>
-            Editing settings for <strong style={{ color: "#4f46e5" }}>{activeBreakpoint}</strong>.
-            Changes apply only to this screen size. Use "Copy to" to apply these settings to other sizes.
-          </p>
-          <div className="flex items-center gap-1 mt-2">
-            {breakpoints.filter(bp => bp.id !== activeBreakpoint).map(bp => (
-              <button
-                key={bp.id}
-                onClick={() => copyBreakpointConfig(activeBreakpoint, bp.id)}
-                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors"
-                style={{ background: "#eef2ff", color: "#4f46e5" }}
-                data-testid={`copy-to-${bp.id}`}
-              >
-                <Copy className="w-3 h-3" />
-                Copy to {bp.label}
-              </button>
-            ))}
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="w-4 h-4 cursor-help shrink-0" style={{ color: "#9ca3af" }} />
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-[220px] text-xs">
+              You can set different settings for each screen size.
+              Select a screen size to customize it individually.
+            </TooltipContent>
+          </Tooltip>
         </div>
-      )}
+
+        {isPerBreakpoint ? (
+          <div className="space-y-2">
+            <p className="text-[10px] leading-tight" style={{ color: "#6b7280" }}>
+              Editing <strong style={{ color: "#4f46e5" }}>{activeBreakpoint}</strong> settings.
+              Each screen size has its own settings.
+            </p>
+            <div className="flex items-center gap-1 flex-wrap relative">
+              <div className="relative" ref={copyMenuRef}>
+                <button
+                  onClick={() => setShowCopyMenu(!showCopyMenu)}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors"
+                  style={{ background: "#eef2ff", color: "#4f46e5", border: "1px solid #c7d2fe" }}
+                  data-testid="button-copy-menu"
+                >
+                  <Copy className="w-3 h-3" />
+                  Copy to...
+                </button>
+                {showCopyMenu && (
+                  <div
+                    className="absolute top-full left-0 mt-1 rounded-md shadow-lg py-1 z-50"
+                    style={{ background: "#ffffff", border: "1px solid #e5e7eb", minWidth: "150px" }}
+                  >
+                    {breakpoints.filter(bp => bp.id !== activeBreakpoint).map(bp => {
+                      const Icon = bp.icon;
+                      return (
+                        <button
+                          key={bp.id}
+                          onClick={() => { copyBreakpointConfig(activeBreakpoint, bp.id); setShowCopyMenu(false); }}
+                          className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] text-left transition-colors hover-elevate"
+                          style={{ color: "#374151" }}
+                          data-testid={`copy-to-${bp.id}`}
+                        >
+                          <Icon className="w-3.5 h-3.5" style={{ color: "#6b7280" }} />
+                          Copy to {bp.label}
+                        </button>
+                      );
+                    })}
+                    <div style={{ borderTop: "1px solid #e5e7eb", margin: "2px 0" }} />
+                    <button
+                      onClick={() => { copyToAllBreakpoints(); setShowCopyMenu(false); }}
+                      className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] text-left font-medium transition-colors hover-elevate"
+                      style={{ color: "#4f46e5" }}
+                      data-testid="button-copy-to-all"
+                    >
+                      <CopyCheck className="w-3.5 h-3.5" />
+                      Apply to all sizes
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setConfig({ responsiveMode: "all" })}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors"
+                style={{ background: "#f3f4f6", color: "#6b7280", border: "1px solid #d1d5db" }}
+                data-testid="button-same-for-all"
+              >
+                Use same for all sizes
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-[10px] leading-tight" style={{ color: "#9ca3af" }}>
+            Same settings for all screen sizes. Click a screen size above to customize each one individually.
+          </p>
+        )}
+      </div>
 
       <ScrollArea className="flex-1">
         <div className="p-4">
@@ -961,28 +1048,6 @@ function DisplaySettingsTab() {
 
   return (
     <>
-      <SectionCard title="Responsive Mode" tooltip="Choose whether to use the same look on all screen sizes or customize each one separately.">
-        <SettingRow label="Settings Mode" tooltip="'Same for all' applies one design everywhere. 'Per screen size' lets you customize desktop, tablet, and mobile separately.">
-          <Select
-            value={config.responsiveMode}
-            onValueChange={(v) => setConfig({ responsiveMode: v as any })}
-          >
-            <SelectTrigger className="w-[160px]" data-testid="select-responsive-mode">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Same for all sizes</SelectItem>
-              <SelectItem value="per-breakpoint">Per screen size</SelectItem>
-            </SelectContent>
-          </Select>
-        </SettingRow>
-        <p className="text-[10px] leading-tight" style={{ color: "#9ca3af" }}>
-          {config.responsiveMode === "all"
-            ? "The same settings are used for all screen sizes (desktop, tablet, and mobile)."
-            : "Configure different settings for each screen size. Use the breakpoint selector above to switch between Desktop, Tablet, and Mobile. You can copy settings from one size to another."}
-        </p>
-      </SectionCard>
-
       <SectionCard title="Animation" tooltip="Visual effect when digits change value.">
         <SettingRow label="Style" tooltip="Flip creates a clock-like flip, Slide moves digits up/down, Fade transitions smoothly.">
           <Select
