@@ -6,6 +6,10 @@ export function usePostMessage() {
   const setConfig = useTimerStore((s) => s.setConfig);
   const setAppMode = useTimerStore((s) => s.setAppMode);
   const applyTheme = useTimerStore((s) => s.applyTheme);
+  const setTemplates = useTimerStore((s) => s.setTemplates);
+  const loadTemplate = useTimerStore((s) => s.loadTemplate);
+  const updateTemplateInList = useTimerStore((s) => s.updateTemplateInList);
+  const removeTemplateFromList = useTimerStore((s) => s.removeTemplateFromList);
   const lastHeightRef = useRef<number>(0);
 
   const handleMessage = useCallback(
@@ -32,14 +36,31 @@ export function usePostMessage() {
           }
           break;
         }
+        case "TEMPLATES_LIST": {
+          setTemplates(data.payload.templates);
+          break;
+        }
+        case "TEMPLATE_DATA": {
+          loadTemplate(data.payload);
+          break;
+        }
+        case "TEMPLATE_SAVED": {
+          updateTemplateInList(data.payload);
+          break;
+        }
+        case "TEMPLATE_DELETED": {
+          removeTemplateFromList(data.payload.id);
+          break;
+        }
       }
     },
-    [setConfig, setAppMode, applyTheme]
+    [setConfig, setAppMode, applyTheme, setTemplates, loadTemplate, updateTemplateInList, removeTemplateFromList]
   );
 
   useEffect(() => {
     window.addEventListener("message", handleMessage);
     window.parent.postMessage({ type: "WIDGET_READY" }, "*");
+    window.parent.postMessage({ type: "REQUEST_TEMPLATES" }, "*");
 
     return () => {
       window.removeEventListener("message", handleMessage);
