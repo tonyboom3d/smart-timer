@@ -3,6 +3,7 @@ import {
   type TimerConfig,
   type TimeRemaining,
   type ThemePreset,
+  type TimerTemplate,
   TimerConfigSchema,
   THEME_PRESETS,
 } from "@shared/schema";
@@ -19,6 +20,9 @@ interface TimerState {
   activeBreakpoint: Breakpoint;
   breakpointConfigs: Record<Breakpoint, Partial<TimerConfig>>;
 
+  templates: TimerTemplate[];
+  activeTemplateId: string | null;
+
   setConfig: (config: Partial<TimerConfig>) => void;
   setTimeRemaining: (time: TimeRemaining) => void;
   setIsRunning: (running: boolean) => void;
@@ -31,6 +35,12 @@ interface TimerState {
   getConfigForBreakpoint: (bp: Breakpoint) => TimerConfig;
   copyBreakpointConfig: (from: Breakpoint, to: Breakpoint) => void;
   copyToAllBreakpoints: () => void;
+
+  setTemplates: (templates: TimerTemplate[]) => void;
+  setActiveTemplateId: (id: string | null) => void;
+  loadTemplate: (template: TimerTemplate) => void;
+  updateTemplateInList: (template: TimerTemplate) => void;
+  removeTemplateFromList: (id: string) => void;
 }
 
 const defaultTime: TimeRemaining = {
@@ -56,6 +66,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     tablet: {},
     mobile: {},
   },
+  templates: [],
+  activeTemplateId: null,
 
   setConfig: (partial) =>
     set((state) => {
@@ -135,5 +147,32 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       config: TimerConfigSchema.parse({}),
       isComplete: false,
       breakpointConfigs: { desktop: {}, tablet: {}, mobile: {} },
+      activeTemplateId: null,
     }),
+
+  setTemplates: (templates) => set({ templates }),
+
+  setActiveTemplateId: (id) => set({ activeTemplateId: id }),
+
+  loadTemplate: (template) =>
+    set({
+      config: { ...template.config },
+      activeTemplateId: template.id,
+      isComplete: false,
+      breakpointConfigs: { desktop: {}, tablet: {}, mobile: {} },
+    }),
+
+  updateTemplateInList: (template) =>
+    set((state) => ({
+      templates: state.templates.some((t) => t.id === template.id)
+        ? state.templates.map((t) => (t.id === template.id ? template : t))
+        : [...state.templates, template],
+      activeTemplateId: template.id,
+    })),
+
+  removeTemplateFromList: (id) =>
+    set((state) => ({
+      templates: state.templates.filter((t) => t.id !== id),
+      activeTemplateId: state.activeTemplateId === id ? null : state.activeTemplateId,
+    })),
 }));
