@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const TimerModeSchema = z.enum(["fixed", "evergreen"]);
+export const TimerModeSchema = z.enum(["fixed", "evergreen", "dynamic"]);
 export type TimerMode = z.infer<typeof TimerModeSchema>;
 
 export const CompletionActionSchema = z.enum(["message", "redirect", "emit", "hide"]);

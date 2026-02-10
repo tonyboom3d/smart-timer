@@ -57,7 +57,7 @@ export function useTimerEngine() {
       return { targetMs: demoTarget, totalDurationMs: 86400000 + 3723000 };
     }
 
-    if (config.mode === "fixed") {
+    if (config.mode === "fixed" || config.mode === "dynamic") {
       if (!config.targetDate) {
         const defaultTarget = Date.now() + 86400000;
         return { targetMs: defaultTarget, totalDurationMs: 86400000 };

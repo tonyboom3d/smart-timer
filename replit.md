@@ -21,7 +21,7 @@ This is a pure frontend application. The Express server exists only to serve the
 - `shared/schema.ts` - TypeScript config interfaces and theme presets
 
 ### Features
-- **Dual Timer Modes**: Fixed Date (countdown to specific date) and Evergreen/Scarcity (duration-based with localStorage persistence)
+- **Three Timer Modes**: Fixed Date (countdown to specific date), Evergreen/Recurring (duration-based with localStorage persistence), and Dynamic CMS (per-page countdown via Wix CMS data)
 - **Animations**: Flip clock, slide, fade, none
 - **5 Theme Presets**: Minimal White, Dark Cyberpunk, Urgent Red, Soft Pastel, Corporate Blue
 - **Progress Indicators**: Circular loader, Linear bar, None

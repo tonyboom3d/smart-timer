@@ -358,10 +358,10 @@ function TimerSettingsTab() {
   return (
     <>
       <SectionCard title="Mode" tooltip="Choose how the timer counts down: to a specific date, or for a set duration per visitor.">
-        <SettingRow label="Timer Type" tooltip="Fixed Date counts to a specific date. Recurring starts a fresh countdown for each visitor.">
+        <SettingRow label="Timer Type" tooltip="Fixed Date counts to a specific date. Recurring starts a fresh countdown for each visitor. Dynamic (CMS) lets you set different times per page.">
           <Select
             value={config.mode}
-            onValueChange={(v) => setConfig({ mode: v as "fixed" | "evergreen" })}
+            onValueChange={(v) => setConfig({ mode: v as "fixed" | "evergreen" | "dynamic" })}
           >
             <SelectTrigger className="w-[160px]" data-testid="select-mode">
               <SelectValue />
@@ -369,6 +369,7 @@ function TimerSettingsTab() {
             <SelectContent>
               <SelectItem value="fixed">Fixed Date</SelectItem>
               <SelectItem value="evergreen">Recurring</SelectItem>
+              <SelectItem value="dynamic">Dynamic (CMS)</SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>
@@ -527,6 +528,43 @@ function TimerSettingsTab() {
               />
             </SettingRow>
           </>
+        )}
+
+        {config.mode === "dynamic" && (
+          <div
+            className="rounded-md p-3 space-y-3"
+            style={{ background: "#f0f4ff", border: "1px solid #c7d2fe" }}
+          >
+            <div className="flex items-start gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold" style={{ color: "#312e81" }}>
+                  Dynamic Timer via CMS
+                </p>
+                <p className="text-[11px] leading-relaxed" style={{ color: "#4338ca" }}>
+                  In this mode, the countdown time is set per page through the CMS.
+                  Go to the CMS manager in Wix, and for each page where this widget is added,
+                  define the target date and time. The widget will automatically display
+                  the matching countdown based on the page link.
+                </p>
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-[11px] font-medium" style={{ color: "#312e81" }}>
+                    How it works:
+                  </p>
+                  <ol className="text-[11px] leading-relaxed space-y-1 list-decimal list-inside" style={{ color: "#4338ca" }}>
+                    <li>Add this widget to a CMS-connected dynamic page</li>
+                    <li>In the CMS collection, add a Date/Time field for the countdown</li>
+                    <li>Connect the field to the widget via Wix Blocks properties</li>
+                    <li>Each page will show a unique countdown matching its CMS data</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </SectionCard>
 
