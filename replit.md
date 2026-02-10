@@ -27,7 +27,8 @@ This is a pure frontend application. The Express server exists only to serve the
 - **Progress Indicators**: Circular loader, Linear bar, None
 - **Dashboard**: Full settings panel with Timer, Theme, Typography, Display, Actions tabs. Breakpoint selector (Desktop/Tablet/Mobile) always visible above tabs with copy-to and apply-all functionality
 - **Responsive Breakpoints**: Per-breakpoint customization with copy settings between breakpoints and apply-to-all option
-- **PostMessage API**: INIT_WIDGET, UPDATE_PREVIEW (incoming), WIDGET_READY, TIMER_COMPLETE, SAVE_CONFIG, HEIGHT_CHANGE (outgoing)
+- **Template Management**: Save, load, rename, and delete timer configurations as reusable templates. All CRUD operations go through postMessage to Velo
+- **PostMessage API**: INIT_WIDGET, UPDATE_PREVIEW, TEMPLATES_LIST, TEMPLATE_DATA, TEMPLATE_SAVED, TEMPLATE_DELETED (incoming), WIDGET_READY, TIMER_COMPLETE, SAVE_CONFIG, HEIGHT_CHANGE, REQUEST_TEMPLATES, SAVE_TEMPLATE, DELETE_TEMPLATE, LOAD_TEMPLATE (outgoing)
 - **RTL/LTR Support**: Full Hebrew and English layout support
 - **Accessibility**: aria-live regions, natural time announcements for screen readers
 - **Demo Mode**: Auto-populated with Cyberpunk theme and sample data

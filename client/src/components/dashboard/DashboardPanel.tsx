@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2, Monitor, Tablet, Smartphone, Copy, CopyCheck, Info } from "lucide-react";
+import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2, Monitor, Tablet, Smartphone, Copy, CopyCheck, Info, Plus, Pencil, Trash2, FolderOpen, ChevronDown, ChevronRight, Check, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useRef, useEffect } from "react";
 
@@ -23,8 +23,17 @@ export function DashboardPanel() {
   const setActiveBreakpoint = useTimerStore((s) => s.setActiveBreakpoint);
   const copyBreakpointConfig = useTimerStore((s) => s.copyBreakpointConfig);
   const copyToAllBreakpoints = useTimerStore((s) => s.copyToAllBreakpoints);
+  const templates = useTimerStore((s) => s.templates);
+  const activeTemplateId = useTimerStore((s) => s.activeTemplateId);
+  const loadTemplate = useTimerStore((s) => s.loadTemplate);
   const [showCopyMenu, setShowCopyMenu] = useState(false);
   const copyMenuRef = useRef<HTMLDivElement>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [showNewInput, setShowNewInput] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!showCopyMenu) return;
@@ -38,7 +47,59 @@ export function DashboardPanel() {
   }, [showCopyMenu]);
 
   const handleSave = () => {
+    if (activeTemplateId) {
+      const activeTemplate = templates.find((t) => t.id === activeTemplateId);
+      window.parent.postMessage({
+        type: "SAVE_TEMPLATE",
+        payload: { id: activeTemplateId, name: activeTemplate?.name || "Untitled", config },
+      }, "*");
+    }
     window.parent.postMessage({ type: "SAVE_CONFIG", payload: config }, "*");
+  };
+
+  const handleSaveAsNew = () => {
+    const name = newTemplateName.trim();
+    if (!name) return;
+    window.parent.postMessage({
+      type: "SAVE_TEMPLATE",
+      payload: { name, config },
+    }, "*");
+    setNewTemplateName("");
+    setShowNewInput(false);
+  };
+
+  const handleRename = (id: string) => {
+    const name = renameValue.trim();
+    if (!name) return;
+    const template = templates.find((t) => t.id === id);
+    if (template) {
+      window.parent.postMessage({
+        type: "SAVE_TEMPLATE",
+        payload: { id, name, config: template.config },
+      }, "*");
+    }
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  const handleDelete = (id: string) => {
+    window.parent.postMessage({
+      type: "DELETE_TEMPLATE",
+      payload: { id },
+    }, "*");
+    setDeletingId(null);
+  };
+
+  const handleLoadTemplate = (id: string) => {
+    const template = templates.find((t) => t.id === id);
+    if (template && template.config) {
+      loadTemplate(template);
+    } else {
+      window.parent.postMessage({
+        type: "LOAD_TEMPLATE",
+        payload: { id },
+      }, "*");
+    }
   };
 
   const breakpoints: Array<{ id: Breakpoint; label: string; icon: typeof Monitor }> = [
@@ -51,31 +112,199 @@ export function DashboardPanel() {
 
   return (
     <div className="h-full flex flex-col" style={{ background: "#ffffff", color: "#333333" }}>
-      <div className="flex items-center justify-between gap-2 p-4 border-b" style={{ borderColor: "#e5e7eb" }}>
-        <div className="flex items-center gap-2">
-          <Settings2 className="w-5 h-5" style={{ color: "#4f46e5" }} />
-          <h2 className="text-base font-semibold" style={{ color: "#111827" }}>
-            Timer Settings
-          </h2>
+      <div className="p-4 border-b" style={{ borderColor: "#e5e7eb" }}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Settings2 className="w-5 h-5" style={{ color: "#4f46e5" }} />
+            <h2 className="text-base font-semibold" style={{ color: "#111827" }}>
+              Timer Settings
+            </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={resetConfig}
+              data-testid="button-reset"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              data-testid="button-save"
+            >
+              <Save className="w-4 h-4 mr-1" />
+              Save
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={resetConfig}
-            data-testid="button-reset"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            data-testid="button-save"
-          >
-            <Save className="w-4 h-4 mr-1" />
-            Save
-          </Button>
-        </div>
+        {activeTemplateId && (() => {
+          const activeT = templates.find((t) => t.id === activeTemplateId);
+          return activeT ? (
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="text-[11px]" style={{ color: "#9ca3af" }}>Editing:</span>
+              <span
+                className="text-[11px] font-medium px-1.5 py-0.5 rounded"
+                style={{ background: "#eef2ff", color: "#4f46e5", border: "1px solid #c7d2fe" }}
+              >
+                {activeT.name}
+              </span>
+            </div>
+          ) : null;
+        })()}
+      </div>
+
+      <div className="border-b" style={{ borderColor: "#e5e7eb" }}>
+        <button
+          onClick={() => setShowTemplates(!showTemplates)}
+          className="flex items-center justify-between w-full px-4 py-2.5 text-xs font-medium transition-colors hover-elevate"
+          style={{ color: "#374151" }}
+          data-testid="button-toggle-templates"
+        >
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4" style={{ color: "#4f46e5" }} />
+            <span>My Templates</span>
+            {templates.length > 0 && (
+              <span
+                className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                style={{ background: "#eef2ff", color: "#4f46e5" }}
+              >
+                {templates.length}
+              </span>
+            )}
+          </div>
+          {showTemplates ? (
+            <ChevronDown className="w-4 h-4" style={{ color: "#9ca3af" }} />
+          ) : (
+            <ChevronRight className="w-4 h-4" style={{ color: "#9ca3af" }} />
+          )}
+        </button>
+
+        {showTemplates && (
+          <div className="px-4 pb-3 space-y-2">
+            {templates.length > 0 && (
+              <div className="space-y-1">
+                {templates.map((t) => (
+                  <div
+                    key={t.id}
+                    className="group flex items-center gap-1.5 rounded-md px-2 py-1.5 transition-colors"
+                    style={{
+                      background: activeTemplateId === t.id ? "#eef2ff" : "transparent",
+                      border: `1px solid ${activeTemplateId === t.id ? "#c7d2fe" : "transparent"}`,
+                    }}
+                    data-testid={`template-item-${t.id}`}
+                  >
+                    {renamingId === t.id ? (
+                      <div className="flex items-center gap-1 flex-1">
+                        <Input
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleRename(t.id); if (e.key === "Escape") setRenamingId(null); }}
+                          className="h-6 text-xs flex-1"
+                          autoFocus
+                          data-testid="input-rename-template"
+                        />
+                        <button onClick={() => handleRename(t.id)} className="p-0.5 rounded hover-elevate" style={{ color: "#22c55e" }} data-testid="button-confirm-rename">
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setRenamingId(null)} className="p-0.5 rounded hover-elevate" style={{ color: "#ef4444" }} data-testid="button-cancel-rename">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : deletingId === t.id ? (
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <span className="text-[11px] flex-1" style={{ color: "#ef4444" }}>Delete?</span>
+                        <button onClick={() => handleDelete(t.id)} className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: "#fef2f2", color: "#ef4444", border: "1px solid #fecaca" }} data-testid="button-confirm-delete">
+                          Yes
+                        </button>
+                        <button onClick={() => setDeletingId(null)} className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: "#f3f4f6", color: "#6b7280", border: "1px solid #d1d5db" }} data-testid="button-cancel-delete">
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleLoadTemplate(t.id)}
+                          className="flex-1 text-left text-xs truncate transition-colors"
+                          style={{ color: activeTemplateId === t.id ? "#4f46e5" : "#374151", fontWeight: activeTemplateId === t.id ? 600 : 400 }}
+                          data-testid={`button-load-template-${t.id}`}
+                        >
+                          {t.name}
+                        </button>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => { setRenamingId(t.id); setRenameValue(t.name); }}
+                            className="p-0.5 rounded hover-elevate"
+                            style={{ color: "#6b7280" }}
+                            data-testid={`button-rename-template-${t.id}`}
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingId(t.id)}
+                            className="p-0.5 rounded hover-elevate"
+                            style={{ color: "#ef4444" }}
+                            data-testid={`button-delete-template-${t.id}`}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {showNewInput ? (
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveAsNew(); if (e.key === "Escape") { setShowNewInput(false); setNewTemplateName(""); } }}
+                  placeholder="Template name..."
+                  className="h-7 text-xs flex-1"
+                  autoFocus
+                  data-testid="input-new-template-name"
+                />
+                <button
+                  onClick={handleSaveAsNew}
+                  disabled={!newTemplateName.trim()}
+                  className="p-1 rounded hover-elevate"
+                  style={{ color: newTemplateName.trim() ? "#22c55e" : "#d1d5db" }}
+                  data-testid="button-confirm-new-template"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => { setShowNewInput(false); setNewTemplateName(""); }}
+                  className="p-1 rounded hover-elevate"
+                  style={{ color: "#ef4444" }}
+                  data-testid="button-cancel-new-template"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowNewInput(true)}
+                className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover-elevate"
+                style={{ color: "#4f46e5", border: "1px dashed #c7d2fe" }}
+                data-testid="button-save-as-new-template"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Save current as new template
+              </button>
+            )}
+
+            {templates.length === 0 && !showNewInput && (
+              <p className="text-[11px] text-center py-1" style={{ color: "#9ca3af" }}>
+                No saved templates yet. Save your first template to reuse it later.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="px-4 py-3 border-b" style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}>
