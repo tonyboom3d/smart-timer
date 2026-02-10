@@ -9,7 +9,8 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2, Monitor, Tablet, Smartphone, Copy, ArrowRight } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2, Monitor, Tablet, Smartphone, Copy, ArrowRight, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
 
@@ -159,23 +160,47 @@ export function DashboardPanel() {
   );
 }
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({ title, tooltip, children }: { title: string; tooltip?: string; children: React.ReactNode }) {
   return (
     <Card className="p-3 space-y-3" style={{ background: "#f9fafb", border: "1px solid #e5e7eb" }}>
-      <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#4f46e5" }}>
-        {title}
-      </h3>
+      <div className="flex items-center gap-1.5">
+        <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#4f46e5" }}>
+          {title}
+        </h3>
+        {tooltip && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="w-3.5 h-3.5 cursor-help shrink-0" style={{ color: "#9ca3af" }} />
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[220px] text-xs">
+              {tooltip}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
       {children}
     </Card>
   );
 }
 
-function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
+function SettingRow({ label, tooltip, children }: { label: string; tooltip?: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <Label className="text-xs shrink-0" style={{ color: "#6b7280" }}>
-        {label}
-      </Label>
+      <div className="flex items-center gap-1 shrink-0">
+        <Label className="text-xs shrink-0" style={{ color: "#6b7280" }}>
+          {label}
+        </Label>
+        {tooltip && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="w-3 h-3 cursor-help shrink-0" style={{ color: "#b0b0b0" }} />
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[220px] text-xs">
+              {tooltip}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
       <div className="flex-1 flex justify-end">{children}</div>
     </div>
   );
@@ -245,8 +270,8 @@ function TimerSettingsTab() {
 
   return (
     <>
-      <SectionCard title="Mode">
-        <SettingRow label="Timer Type">
+      <SectionCard title="Mode" tooltip="Choose how the timer counts down: to a specific date, or for a set duration per visitor.">
+        <SettingRow label="Timer Type" tooltip="Fixed Date counts to a specific date. Recurring starts a fresh countdown for each visitor.">
           <Select
             value={config.mode}
             onValueChange={(v) => setConfig({ mode: v as "fixed" | "evergreen" })}
@@ -256,7 +281,7 @@ function TimerSettingsTab() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="fixed">Fixed Date</SelectItem>
-              <SelectItem value="evergreen">Evergreen</SelectItem>
+              <SelectItem value="evergreen">Recurring</SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>
@@ -383,7 +408,7 @@ function TimerSettingsTab() {
 
         {config.mode === "evergreen" && (
           <>
-            <SettingRow label="Duration (min)">
+            <SettingRow label="Duration (min)" tooltip="How long the countdown runs for each visitor.">
               <Input
                 type="number"
                 min={1}
@@ -395,7 +420,7 @@ function TimerSettingsTab() {
                 data-testid="input-duration"
               />
             </SettingRow>
-            <SettingRow label="Reset After (hrs)">
+            <SettingRow label="Reset After (hrs)" tooltip="After this time, the timer resets and starts fresh for the same visitor.">
               <Input
                 type="number"
                 min={0}
@@ -407,40 +432,47 @@ function TimerSettingsTab() {
                 data-testid="input-reset-after"
               />
             </SettingRow>
+            <SettingRow label="Remember Visitor" tooltip="When enabled, uses the visitor's device memory to continue showing the same countdown instead of restarting on every visit.">
+              <Switch
+                checked={config.evergreenPersist !== false}
+                onCheckedChange={(v) => setConfig({ evergreenPersist: v })}
+                data-testid="switch-evergreen-persist"
+              />
+            </SettingRow>
           </>
         )}
       </SectionCard>
 
-      <SectionCard title="Visible Units">
-        <SettingRow label="Days">
+      <SectionCard title="Visible Units" tooltip="Choose which time units to display in the countdown.">
+        <SettingRow label="Days" tooltip="Show or hide the days counter.">
           <Switch
             checked={config.units.showDays}
             onCheckedChange={(v) => setConfig({ units: { ...config.units, showDays: v } })}
             data-testid="switch-days"
           />
         </SettingRow>
-        <SettingRow label="Hours">
+        <SettingRow label="Hours" tooltip="Show or hide the hours counter.">
           <Switch
             checked={config.units.showHours}
             onCheckedChange={(v) => setConfig({ units: { ...config.units, showHours: v } })}
             data-testid="switch-hours"
           />
         </SettingRow>
-        <SettingRow label="Minutes">
+        <SettingRow label="Minutes" tooltip="Show or hide the minutes counter.">
           <Switch
             checked={config.units.showMinutes}
             onCheckedChange={(v) => setConfig({ units: { ...config.units, showMinutes: v } })}
             data-testid="switch-minutes"
           />
         </SettingRow>
-        <SettingRow label="Seconds">
+        <SettingRow label="Seconds" tooltip="Show or hide the seconds counter.">
           <Switch
             checked={config.units.showSeconds}
             onCheckedChange={(v) => setConfig({ units: { ...config.units, showSeconds: v } })}
             data-testid="switch-seconds"
           />
         </SettingRow>
-        <SettingRow label="Milliseconds">
+        <SettingRow label="Milliseconds" tooltip="Show or hide milliseconds for extra precision.">
           <Switch
             checked={config.units.showMilliseconds}
             onCheckedChange={(v) => setConfig({ units: { ...config.units, showMilliseconds: v } })}
@@ -449,7 +481,7 @@ function TimerSettingsTab() {
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title="Unit Labels">
+      <SectionCard title="Unit Labels" tooltip="Custom text labels shown below each time unit.">
         {(["days", "hours", "minutes", "seconds", "milliseconds"] as const).map((unit) => (
           <SettingRow key={unit} label={unit.charAt(0).toUpperCase() + unit.slice(1)}>
             <Input
@@ -482,7 +514,7 @@ function ThemeSettingsTab() {
 
   return (
     <>
-      <SectionCard title="Presets">
+      <SectionCard title="Presets" tooltip="Quick-start themes that set all colors, fonts, and styles at once.">
         <div className="grid grid-cols-1 gap-2">
           {themes.map((theme) => {
             const preset = THEME_PRESETS[theme.id];
@@ -517,59 +549,107 @@ function ThemeSettingsTab() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Custom Colors">
-        <SettingRow label="Background">
+      <SectionCard title="Custom Colors" tooltip="Set custom colors for the timer background, digit boxes, and separators.">
+        <SettingRow label="Background" tooltip="The main background color of the timer widget.">
           <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={config.backgroundColor === "transparent" ? "#ffffff" : config.backgroundColor}
-              onChange={(e) => setConfig({ backgroundColor: e.target.value })}
-              className="w-8 h-8 rounded cursor-pointer border-0"
-              data-testid="color-background"
-            />
-            <Input
-              value={config.backgroundColor}
-              onChange={(e) => setConfig({ backgroundColor: e.target.value })}
-              className="w-[100px] text-xs"
-            />
+            {config.backgroundColor !== "transparent" && (
+              <input
+                type="color"
+                value={config.backgroundColor}
+                onChange={(e) => setConfig({ backgroundColor: e.target.value })}
+                className="w-8 h-8 rounded cursor-pointer border-0"
+                data-testid="color-background"
+              />
+            )}
+            {config.backgroundColor === "transparent" ? (
+              <button
+                onClick={() => setConfig({ backgroundColor: "#ffffff" })}
+                className="text-[10px] px-2 py-1 rounded"
+                style={{ background: "#eef2ff", color: "#4f46e5", border: "1px solid #c7d2fe" }}
+                data-testid="button-bg-set-color"
+              >
+                Set Color
+              </button>
+            ) : (
+              <button
+                onClick={() => setConfig({ backgroundColor: "transparent" })}
+                className="text-[10px] px-2 py-1 rounded"
+                style={{ background: "#f3f4f6", color: "#6b7280", border: "1px solid #d1d5db" }}
+                data-testid="button-bg-none"
+              >
+                None
+              </button>
+            )}
           </div>
         </SettingRow>
-        <SettingRow label="Digit BG">
+        <SettingRow label="Digit BG" tooltip="Background color of each digit box.">
           <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={config.digitBackground}
-              onChange={(e) => setConfig({ digitBackground: e.target.value })}
-              className="w-8 h-8 rounded cursor-pointer border-0"
-              data-testid="color-digit-bg"
-            />
-            <Input
-              value={config.digitBackground}
-              onChange={(e) => setConfig({ digitBackground: e.target.value })}
-              className="w-[100px] text-xs"
-            />
+            {config.digitBackground !== "transparent" && (
+              <input
+                type="color"
+                value={config.digitBackground}
+                onChange={(e) => setConfig({ digitBackground: e.target.value })}
+                className="w-8 h-8 rounded cursor-pointer border-0"
+                data-testid="color-digit-bg"
+              />
+            )}
+            {config.digitBackground === "transparent" ? (
+              <button
+                onClick={() => setConfig({ digitBackground: "#1a1a2e" })}
+                className="text-[10px] px-2 py-1 rounded"
+                style={{ background: "#eef2ff", color: "#4f46e5", border: "1px solid #c7d2fe" }}
+                data-testid="button-digit-set-color"
+              >
+                Set Color
+              </button>
+            ) : (
+              <button
+                onClick={() => setConfig({ digitBackground: "transparent" })}
+                className="text-[10px] px-2 py-1 rounded"
+                style={{ background: "#f3f4f6", color: "#6b7280", border: "1px solid #d1d5db" }}
+                data-testid="button-digit-none"
+              >
+                None
+              </button>
+            )}
           </div>
         </SettingRow>
-        <SettingRow label="Separator">
+        <SettingRow label="Separator" tooltip="Color of the separator dots between time units.">
           <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={config.separatorColor}
-              onChange={(e) => setConfig({ separatorColor: e.target.value })}
-              className="w-8 h-8 rounded cursor-pointer border-0"
-              data-testid="color-separator"
-            />
-            <Input
-              value={config.separatorColor}
-              onChange={(e) => setConfig({ separatorColor: e.target.value })}
-              className="w-[100px] text-xs"
-            />
+            {config.separatorColor !== "transparent" && (
+              <input
+                type="color"
+                value={config.separatorColor}
+                onChange={(e) => setConfig({ separatorColor: e.target.value })}
+                className="w-8 h-8 rounded cursor-pointer border-0"
+                data-testid="color-separator"
+              />
+            )}
+            {config.separatorColor === "transparent" ? (
+              <button
+                onClick={() => setConfig({ separatorColor: "#333333" })}
+                className="text-[10px] px-2 py-1 rounded"
+                style={{ background: "#eef2ff", color: "#4f46e5", border: "1px solid #c7d2fe" }}
+                data-testid="button-sep-set-color"
+              >
+                Set Color
+              </button>
+            ) : (
+              <button
+                onClick={() => setConfig({ separatorColor: "transparent" })}
+                className="text-[10px] px-2 py-1 rounded"
+                style={{ background: "#f3f4f6", color: "#6b7280", border: "1px solid #d1d5db" }}
+                data-testid="button-sep-none"
+              >
+                None
+              </button>
+            )}
           </div>
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title="Background Style">
-        <SettingRow label="Type">
+      <SectionCard title="Background Style" tooltip="Control how the background appears. Glassy adds a frosted glass effect.">
+        <SettingRow label="Type" tooltip="Solid shows a flat color, Transparent removes the background, Glassy adds a frosted blur effect.">
           <Select
             value={config.backgroundStyle || "solid"}
             onValueChange={(v) => setConfig({ backgroundStyle: v as any })}
@@ -587,7 +667,7 @@ function ThemeSettingsTab() {
 
         {config.backgroundStyle === "glassy" && (
           <>
-            <SettingRow label="Blur Amount">
+            <SettingRow label="Blur Amount" tooltip="How strong the frosted glass blur effect is.">
               <div className="flex items-center gap-2 w-[160px]">
                 <Slider
                   value={[config.glassBlur || 10]}
@@ -600,7 +680,7 @@ function ThemeSettingsTab() {
                 <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>{config.glassBlur || 10}px</span>
               </div>
             </SettingRow>
-            <SettingRow label="Opacity">
+            <SettingRow label="Opacity" tooltip="How see-through the background is. 0% is fully transparent, 100% is fully opaque.">
               <div className="flex items-center gap-2 w-[160px]">
                 <Slider
                   value={[config.glassOpacity !== undefined ? config.glassOpacity : 0.3]}
@@ -613,7 +693,7 @@ function ThemeSettingsTab() {
                 <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>{Math.round((config.glassOpacity !== undefined ? config.glassOpacity : 0.3) * 100)}%</span>
               </div>
             </SettingRow>
-            <SettingRow label="Preview Image">
+            <SettingRow label="Preview Image" tooltip="Show a background image in the preview to see the glass effect in action.">
               <Switch
                 checked={config.showGlassPreviewImage || false}
                 onCheckedChange={(v) => setConfig({ showGlassPreviewImage: v })}
@@ -627,8 +707,8 @@ function ThemeSettingsTab() {
         )}
       </SectionCard>
 
-      <SectionCard title="Layout">
-        <SettingRow label="Direction">
+      <SectionCard title="Layout" tooltip="Control text direction, spacing, and border roundness.">
+        <SettingRow label="Direction" tooltip="LTR for left-to-right languages, RTL for right-to-left languages.">
           <Select
             value={config.direction}
             onValueChange={(v) => setConfig({ direction: v as "ltr" | "rtl" })}
@@ -637,12 +717,12 @@ function ThemeSettingsTab() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ltr">LTR (English)</SelectItem>
-              <SelectItem value="rtl">RTL (Hebrew)</SelectItem>
+              <SelectItem value="ltr">LTR</SelectItem>
+              <SelectItem value="rtl">RTL</SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>
-        <SettingRow label="Border Radius">
+        <SettingRow label="Border Radius" tooltip="Roundness of the digit box corners.">
           <div className="flex items-center gap-2 w-[160px]">
             <Slider
               value={[config.borderRadius]}
@@ -692,7 +772,7 @@ function TypographySettingsTab() {
 
   return (
     <>
-      <SectionCard title="Number Typography">
+      <SectionCard title="Number Typography" tooltip="Font, size, weight and color of the countdown numbers.">
         <SettingRow label="Font">
           <Select
             value={config.numberTypography.fontFamily}
@@ -763,7 +843,7 @@ function TypographySettingsTab() {
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title="Label Typography">
+      <SectionCard title="Label Typography" tooltip="Font and styling for the labels below each number (Days, Hours, etc).">
         <SettingRow label="Font">
           <Select
             value={config.labelTypography.fontFamily}
@@ -815,7 +895,7 @@ function TypographySettingsTab() {
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title="Header Typography">
+      <SectionCard title="Header Typography" tooltip="Font and styling for the header text above the timer.">
         <SettingRow label="Font">
           <Select
             value={config.headerTypography.fontFamily}
@@ -876,8 +956,8 @@ function DisplaySettingsTab() {
 
   return (
     <>
-      <SectionCard title="Responsive Mode">
-        <SettingRow label="Settings Mode">
+      <SectionCard title="Responsive Mode" tooltip="Choose whether to use the same look on all screen sizes or customize each one separately.">
+        <SettingRow label="Settings Mode" tooltip="'Same for all' applies one design everywhere. 'Per screen size' lets you customize desktop, tablet, and mobile separately.">
           <Select
             value={config.responsiveMode}
             onValueChange={(v) => setConfig({ responsiveMode: v as any })}
@@ -898,8 +978,8 @@ function DisplaySettingsTab() {
         </p>
       </SectionCard>
 
-      <SectionCard title="Animation">
-        <SettingRow label="Style">
+      <SectionCard title="Animation" tooltip="Visual effect when digits change value.">
+        <SettingRow label="Style" tooltip="Flip creates a clock-like flip, Slide moves digits up/down, Fade transitions smoothly.">
           <Select
             value={config.animationStyle}
             onValueChange={(v) => setConfig({ animationStyle: v as any })}
@@ -917,8 +997,8 @@ function DisplaySettingsTab() {
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title="Progress Indicator">
-        <SettingRow label="Style">
+      <SectionCard title="Progress Indicator" tooltip="A visual bar or circle showing how much time is left.">
+        <SettingRow label="Style" tooltip="Circular wraps around the timer, Linear shows a bar below it.">
           <Select
             value={config.progressStyle}
             onValueChange={(v) => setConfig({ progressStyle: v as any })}
@@ -935,7 +1015,7 @@ function DisplaySettingsTab() {
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title="Header & Sub-header">
+      <SectionCard title="Header & Sub-header" tooltip="Text displayed above the countdown timer.">
         <div className="space-y-2">
           <Label className="text-xs" style={{ color: "#6b7280" }}>Header Text</Label>
           <Input
@@ -965,8 +1045,8 @@ function ActionsSettingsTab() {
 
   return (
     <>
-      <SectionCard title="On Timer Complete">
-        <SettingRow label="Action">
+      <SectionCard title="On Timer Complete" tooltip="What happens when the countdown reaches zero.">
+        <SettingRow label="Action" tooltip="Show a message, redirect to a URL, trigger an event for your site, or hide the timer.">
           <Select
             value={config.completionAction}
             onValueChange={(v) => setConfig({ completionAction: v as any })}

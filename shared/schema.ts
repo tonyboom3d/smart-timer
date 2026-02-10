@@ -66,6 +66,7 @@ export const TimerConfigSchema = z.object({
   targetDate: z.string().default(""),
   evergreenDuration: z.number().default(900000),
   evergreenResetAfter: z.number().default(86400000),
+  evergreenPersist: z.boolean().default(true),
   timezone: z.string().default("local"),
 
   units: UnitsConfigSchema.default({}),

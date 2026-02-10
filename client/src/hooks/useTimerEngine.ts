@@ -4,20 +4,23 @@ import type { TimeRemaining } from "@shared/schema";
 
 const STORAGE_KEY = "countdown_evergreen_start";
 
-function getEvergreenStartTime(duration: number, resetAfter: number): number {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const data = JSON.parse(stored);
-      const elapsed = Date.now() - data.startTime;
-      if (elapsed < duration + resetAfter) {
-        return data.startTime;
+function getEvergreenStartTime(duration: number, resetAfter: number, persist: boolean): number {
+  if (persist) {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        const elapsed = Date.now() - data.startTime;
+        if (elapsed < duration + resetAfter) {
+          return data.startTime;
+        }
       }
-    }
-  } catch {}
-  const startTime = Date.now();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ startTime }));
-  return startTime;
+    } catch {}
+    const startTime = Date.now();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ startTime }));
+    return startTime;
+  }
+  return Date.now();
 }
 
 function computeTimeRemaining(
@@ -66,11 +69,12 @@ export function useTimerEngine() {
 
     const startTime = getEvergreenStartTime(
       config.evergreenDuration,
-      config.evergreenResetAfter
+      config.evergreenResetAfter,
+      config.evergreenPersist !== false
     );
     const targetMs = startTime + config.evergreenDuration;
     return { targetMs, totalDurationMs: config.evergreenDuration };
-  }, [config.mode, config.targetDate, config.evergreenDuration, config.evergreenResetAfter, isDemo]);
+  }, [config.mode, config.targetDate, config.evergreenDuration, config.evergreenResetAfter, config.evergreenPersist, isDemo]);
 
   useEffect(() => {
     completeFiredRef.current = false;

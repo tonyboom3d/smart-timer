@@ -167,7 +167,12 @@ function DashboardView() {
                 boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
                 border: "2px solid #4f46e5",
                 zIndex: 10,
-                background: "#ffffff"
+                ...(config.backgroundStyle === "transparent" || config.backgroundStyle === "glassy" || config.backgroundColor === "transparent"
+                  ? {
+                      backgroundImage: "repeating-conic-gradient(#d1d5db 0% 25%, #ffffff 0% 50%)",
+                      backgroundSize: "16px 16px",
+                    }
+                  : { background: "#ffffff" }),
               }}
               data-testid="preview-container"
             >
