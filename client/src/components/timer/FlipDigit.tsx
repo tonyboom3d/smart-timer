@@ -21,35 +21,41 @@ export function FlipDigit({
   borderRadius,
   animationStyle,
 }: FlipDigitProps) {
+  const [displayValue, setDisplayValue] = useState(value);
   const [prevValue, setPrevValue] = useState(value);
   const [isAnimating, setIsAnimating] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    if (value !== prevValue) {
+    if (value !== displayValue) {
+      setPrevValue(displayValue);
       setIsAnimating(true);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
-        setPrevValue(value);
+        setDisplayValue(value);
         setIsAnimating(false);
-      }, 300);
+      }, 450);
     }
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [value, prevValue]);
+  }, [value, displayValue]);
 
   const digitStyle: React.CSSProperties = {
     fontFamily,
     fontSize: `${fontSize}px`,
     fontWeight,
     color,
-    lineHeight: 1.1,
+    lineHeight: 1,
     fontVariantNumeric: "tabular-nums",
   };
 
+  const cardHeight = fontSize * 1.3 + 12;
+  const halfHeight = cardHeight / 2;
+  const bgIsTransparent = background === "transparent";
+
   const cardStyle: React.CSSProperties = {
-    background,
+    background: bgIsTransparent ? "transparent" : background,
     borderRadius: `${borderRadius}px`,
     minWidth: `${fontSize * 0.75}px`,
   };
@@ -93,18 +99,27 @@ export function FlipDigit({
     return (
       <div
         className="relative flex items-center justify-center"
-        style={{ ...cardStyle, overflow: "hidden" }}
+        style={{ ...cardStyle, overflow: "hidden", height: `${cardHeight}px` }}
         data-testid={`digit-${value}`}
       >
-        <div className="relative" style={{ height: `${fontSize * 1.1 + 16}px` }}>
+        <div
+          className="relative"
+          style={{
+            height: `${cardHeight}px`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <span
             style={{
               ...digitStyle,
-              transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              transform: isAnimating ? "translateY(-100%)" : "translateY(0)",
+              transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease",
+              transform: isAnimating ? "translateY(-40%)" : "translateY(0)",
+              opacity: isAnimating ? 0 : 1,
               display: "block",
             }}
-            className="py-2 px-2"
+            className="px-2"
           >
             {isAnimating ? prevValue : value}
           </span>
@@ -113,14 +128,12 @@ export function FlipDigit({
               style={{
                 ...digitStyle,
                 position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                transform: isAnimating ? "translateY(-100%)" : "translateY(0)",
+                transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease",
+                transform: isAnimating ? "translateY(0)" : "translateY(40%)",
+                opacity: isAnimating ? 1 : 0,
                 display: "block",
               }}
-              className="py-2 px-2"
+              className="px-2"
             >
               {value}
             </span>
@@ -130,31 +143,37 @@ export function FlipDigit({
     );
   }
 
+  const topBorderRadius = `${borderRadius}px ${borderRadius}px 0 0`;
+  const bottomBorderRadius = `0 0 ${borderRadius}px ${borderRadius}px`;
+  const darkerBg = bgIsTransparent ? "transparent" : darkenColor(background, 0.05);
+
   return (
     <div
       className="relative"
       style={{
         ...cardStyle,
-        perspective: "400px",
-        height: `${fontSize * 1.1 + 16}px`,
-        overflow: "hidden",
+        perspective: "600px",
+        perspectiveOrigin: "50% 50%",
+        height: `${cardHeight}px`,
+        background: "transparent",
       }}
       data-testid={`digit-${value}`}
     >
       <div
-        className="relative w-full flex items-center justify-center"
-        style={{ height: "50%", overflow: "hidden" }}
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: 0,
+          height: `${halfHeight}px`,
+          overflow: "hidden",
+          background: bgIsTransparent ? "transparent" : background,
+          borderRadius: topBorderRadius,
+        }}
       >
-        <span
-          style={{
-            ...digitStyle,
-            position: "absolute",
-            top: 0,
-            paddingTop: "8px",
-          }}
-        >
-          {isAnimating ? prevValue : value}
-        </span>
+        <div className="flex items-center justify-center" style={{ height: `${cardHeight}px` }}>
+          <span style={digitStyle}>{isAnimating ? prevValue : value}</span>
+        </div>
       </div>
 
       <div
@@ -162,28 +181,34 @@ export function FlipDigit({
           position: "absolute",
           left: 0,
           right: 0,
-          top: "50%",
-          height: "1px",
-          background: `${color}10`,
-          zIndex: 5,
+          top: `${halfHeight}px`,
+          height: `${halfHeight}px`,
+          overflow: "hidden",
+          background: bgIsTransparent ? "transparent" : darkerBg,
+          borderRadius: bottomBorderRadius,
         }}
-      />
-
-      <div
-        className="relative w-full flex items-center justify-center"
-        style={{ height: "50%", overflow: "hidden" }}
       >
-        <span
-          style={{
-            ...digitStyle,
-            position: "absolute",
-            bottom: 0,
-            paddingBottom: "8px",
-          }}
+        <div
+          className="flex items-center justify-center"
+          style={{ height: `${cardHeight}px`, marginTop: `-${halfHeight}px` }}
         >
-          {value}
-        </span>
+          <span style={digitStyle}>{value}</span>
+        </div>
       </div>
+
+      {!bgIsTransparent && (
+        <div
+          style={{
+            position: "absolute",
+            left: "2px",
+            right: "2px",
+            top: `${halfHeight - 0.5}px`,
+            height: "1px",
+            background: `rgba(0,0,0,0.15)`,
+            zIndex: 15,
+          }}
+        />
+      )}
 
       {isAnimating && (
         <>
@@ -193,45 +218,58 @@ export function FlipDigit({
               left: 0,
               right: 0,
               top: 0,
-              height: "50%",
+              height: `${halfHeight}px`,
               overflow: "hidden",
               transformOrigin: "bottom center",
-              animation: "flipTop 0.3s ease-in forwards",
-              background,
-              borderRadius: `${borderRadius}px ${borderRadius}px 0 0`,
-              zIndex: 10,
+              animation: "flipTopHalf 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards",
+              background: bgIsTransparent ? "transparent" : background,
+              borderRadius: topBorderRadius,
+              zIndex: 20,
+              backfaceVisibility: "hidden",
             }}
           >
-            <div className="flex items-center justify-center h-full">
-              <span style={{ ...digitStyle, transform: "translateY(25%)" }}>
-                {prevValue}
-              </span>
+            <div className="flex items-center justify-center" style={{ height: `${cardHeight}px` }}>
+              <span style={digitStyle}>{prevValue}</span>
             </div>
           </div>
+
           <div
             style={{
               position: "absolute",
               left: 0,
               right: 0,
-              bottom: 0,
-              height: "50%",
+              top: `${halfHeight}px`,
+              height: `${halfHeight}px`,
               overflow: "hidden",
               transformOrigin: "top center",
-              animation: "flipBottom 0.3s ease-out 0.15s forwards",
-              background,
-              borderRadius: `0 0 ${borderRadius}px ${borderRadius}px`,
-              zIndex: 10,
+              animation: "flipBottomHalf 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.2s forwards",
+              background: bgIsTransparent ? "transparent" : darkerBg,
+              borderRadius: bottomBorderRadius,
+              zIndex: 20,
               transform: "rotateX(90deg)",
+              backfaceVisibility: "hidden",
             }}
           >
-            <div className="flex items-center justify-center h-full">
-              <span style={{ ...digitStyle, transform: "translateY(-25%)" }}>
-                {value}
-              </span>
+            <div
+              className="flex items-center justify-center"
+              style={{ height: `${cardHeight}px`, marginTop: `-${halfHeight}px` }}
+            >
+              <span style={digitStyle}>{value}</span>
             </div>
           </div>
         </>
       )}
     </div>
   );
+}
+
+function darkenColor(hex: string, amount: number): string {
+  try {
+    const r = Math.max(0, parseInt(hex.slice(1, 3), 16) - Math.round(255 * amount));
+    const g = Math.max(0, parseInt(hex.slice(3, 5), 16) - Math.round(255 * amount));
+    const b = Math.max(0, parseInt(hex.slice(5, 7), 16) - Math.round(255 * amount));
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+  } catch {
+    return hex;
+  }
 }

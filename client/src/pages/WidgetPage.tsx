@@ -72,14 +72,10 @@ function DashboardView() {
     document.addEventListener("mouseup", onMouseUp);
   };
 
+  const showPreviewImage = config.showGlassPreviewImage &&
+    (config.backgroundStyle === "glassy" || config.backgroundStyle === "transparent" || config.backgroundColor === "transparent");
+
   const getPreviewBg = () => {
-    if (config.backgroundStyle === "glassy" && config.showGlassPreviewImage) {
-      return {
-        backgroundImage: "url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      };
-    }
     return { background: "#f3f4f6" };
   };
 
@@ -158,7 +154,7 @@ function DashboardView() {
             </div>
 
             <div
-              className="transition-[width] duration-200 ease-out"
+              className="transition-[width] duration-200 ease-out relative"
               style={{
                 width: `${Math.min(currentWidth, (containerRef.current?.clientWidth || 1400) - 80)}px`,
                 minWidth: "280px",
@@ -167,16 +163,30 @@ function DashboardView() {
                 boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
                 border: "2px solid #4f46e5",
                 zIndex: 10,
-                ...(config.backgroundStyle === "transparent" || config.backgroundStyle === "glassy" || config.backgroundColor === "transparent"
+                ...((!showPreviewImage && (config.backgroundStyle === "transparent" || config.backgroundStyle === "glassy" || config.backgroundColor === "transparent"))
                   ? {
                       backgroundImage: "repeating-conic-gradient(#d1d5db 0% 25%, #ffffff 0% 50%)",
                       backgroundSize: "16px 16px",
                     }
-                  : { background: "#ffffff" }),
+                  : !showPreviewImage ? { background: "#ffffff" } : {}),
               }}
               data-testid="preview-container"
             >
-              <TimerDisplay />
+              {showPreviewImage && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    backgroundImage: "url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80)",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    zIndex: 0,
+                  }}
+                />
+              )}
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <TimerDisplay />
+              </div>
             </div>
 
             <div

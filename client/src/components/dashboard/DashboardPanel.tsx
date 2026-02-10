@@ -693,7 +693,12 @@ function ThemeSettingsTab() {
                 <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>{Math.round((config.glassOpacity !== undefined ? config.glassOpacity : 0.3) * 100)}%</span>
               </div>
             </SettingRow>
-            <SettingRow label="Preview Image" tooltip="Show a background image in the preview to see the glass effect in action.">
+          </>
+        )}
+
+        {(config.backgroundStyle === "glassy" || config.backgroundStyle === "transparent") && (
+          <>
+            <SettingRow label="Preview Image" tooltip="Show a background image behind the timer to preview how it looks on real content.">
               <Switch
                 checked={config.showGlassPreviewImage || false}
                 onCheckedChange={(v) => setConfig({ showGlassPreviewImage: v })}
@@ -701,7 +706,7 @@ function ThemeSettingsTab() {
               />
             </SettingRow>
             <p className="text-[10px]" style={{ color: "#9ca3af" }}>
-              Enable preview image to see how glassy the background looks over content.
+              Enable preview image to see how the timer looks over content.
             </p>
           </>
         )}
