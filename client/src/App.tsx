@@ -32,25 +32,10 @@ function App() {
   const setConfig = useTimerStore((s) => s.setConfig);
 
   useEffect(() => {
+    setAppMode("dashboard");
     const params = new URLSearchParams(window.location.search);
 
-    if (params.get("mode") === "dashboard") {
-      setAppMode("dashboard");
-    }
-
-    if (params.get("demo") === "true") {
-      setIsDemo(true);
-      applyTheme("minimal-white");
-      setConfig({
-        headerText: "Flash Sale Ends In",
-        subHeaderText: "Don't miss this exclusive offer!",
-        targetDate: new Date(Date.now() + 86400000 + 7200000 + 1800000 + 45000).toISOString(),
-        progressStyle: "linear",
-      });
-    }
-
-    const noConfig = !params.get("mode") && !params.get("demo");
-    if (noConfig) {
+    if (params.get("demo") === "true" || (!params.get("mode") && !params.get("demo"))) {
       setIsDemo(true);
       applyTheme("minimal-white");
       setConfig({

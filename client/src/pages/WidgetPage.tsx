@@ -30,8 +30,8 @@ function DashboardView() {
   const config = useTimerStore((s) => s.config);
   const activeBreakpoint = useTimerStore((s) => s.activeBreakpoint);
   const setActiveBreakpoint = useTimerStore((s) => s.setActiveBreakpoint);
-  const [viewportPreset, setViewportPreset] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const [customWidth, setCustomWidth] = useState<number | null>(null);
+  const [viewportPreset, setViewportPreset] = useState<"desktop" | "tablet" | "mobile">("tablet");
+  const [customWidth, setCustomWidth] = useState<number | null>(540);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragSide = useRef<"left" | "right">("right");
@@ -90,45 +90,53 @@ function DashboardView() {
           className="flex items-center justify-between gap-2 px-4 py-2 border-b shrink-0"
           style={{ borderColor: "#e5e7eb", background: "#ffffff" }}
         >
-          <div className="flex items-center gap-1">
-            <span className="text-xs font-medium mr-2" style={{ color: "#6b7280" }}>Viewport:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold mr-2 uppercase tracking-tight" style={{ color: "#4f46e5" }}>Viewport Size:</span>
             <button
               onClick={() => handlePreset("desktop")}
-              className="p-1.5 rounded-md transition-colors"
+              className="p-2 rounded-md transition-all hover:bg-indigo-50"
               style={{
-                background: viewportPreset === "desktop" && !customWidth ? "#eef2ff" : "transparent",
-                color: viewportPreset === "desktop" && !customWidth ? "#4f46e5" : "#9ca3af",
+                background: viewportPreset === "desktop" && !customWidth ? "#4f46e5" : "transparent",
+                color: viewportPreset === "desktop" && !customWidth ? "#ffffff" : "#4f46e5",
+                border: "1px solid #4f46e5"
               }}
               data-testid="button-viewport-desktop"
+              title="Desktop"
             >
-              <Monitor className="w-4 h-4" />
+              <Monitor className="w-5 h-5" />
             </button>
             <button
               onClick={() => handlePreset("tablet")}
-              className="p-1.5 rounded-md transition-colors"
+              className="p-2 rounded-md transition-all hover:bg-indigo-50"
               style={{
-                background: viewportPreset === "tablet" && !customWidth ? "#eef2ff" : "transparent",
-                color: viewportPreset === "tablet" && !customWidth ? "#4f46e5" : "#9ca3af",
+                background: viewportPreset === "tablet" && !customWidth ? "#4f46e5" : "transparent",
+                color: viewportPreset === "tablet" && !customWidth ? "#ffffff" : "#4f46e5",
+                border: "1px solid #4f46e5"
               }}
               data-testid="button-viewport-tablet"
+              title="Tablet"
             >
-              <Tablet className="w-4 h-4" />
+              <Tablet className="w-5 h-5" />
             </button>
             <button
               onClick={() => handlePreset("mobile")}
-              className="p-1.5 rounded-md transition-colors"
+              className="p-2 rounded-md transition-all hover:bg-indigo-50"
               style={{
-                background: viewportPreset === "mobile" && !customWidth ? "#eef2ff" : "transparent",
-                color: viewportPreset === "mobile" && !customWidth ? "#4f46e5" : "#9ca3af",
+                background: viewportPreset === "mobile" && !customWidth ? "#4f46e5" : "transparent",
+                color: viewportPreset === "mobile" && !customWidth ? "#ffffff" : "#4f46e5",
+                border: "1px solid #4f46e5"
               }}
               data-testid="button-viewport-mobile"
+              title="Smartphone"
             >
-              <Smartphone className="w-4 h-4" />
+              <Smartphone className="w-5 h-5" />
             </button>
           </div>
-          <span className="text-xs tabular-nums" style={{ color: "#9ca3af" }}>
-            {currentWidth}px
-          </span>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full border bg-white" style={{ borderColor: "#4f46e5" }}>
+            <span className="text-sm font-bold tabular-nums" style={{ color: "#4f46e5" }}>
+              {currentWidth}px
+            </span>
+          </div>
         </div>
 
         <div
