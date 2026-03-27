@@ -1334,24 +1334,6 @@ function DisplaySettingsTab() {
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title="Progress Indicator" tooltip="A visual bar or circle showing how much time is left.">
-        <SettingRow label="Style" tooltip="Circular wraps around the timer, Linear shows a bar below it.">
-          <Select
-            value={config.progressStyle}
-            onValueChange={(v) => setConfig({ progressStyle: v as any })}
-          >
-            <SelectTrigger className="w-[140px]" data-testid="select-progress">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              <SelectItem value="circular">Circular</SelectItem>
-              <SelectItem value="linear">Linear Bar</SelectItem>
-            </SelectContent>
-          </Select>
-        </SettingRow>
-      </SectionCard>
-
       <SectionCard title="Header & Sub-header" tooltip="Text displayed above the countdown timer.">
         <div className="space-y-2">
           <Label className="text-xs" style={{ color: "#6b7280" }}>Header Text</Label>
@@ -1394,7 +1376,6 @@ function ActionsSettingsTab() {
             <SelectContent>
               <SelectItem value="message">Show Message</SelectItem>
               <SelectItem value="redirect">Redirect to URL</SelectItem>
-              <SelectItem value="emit">Emit Event</SelectItem>
               <SelectItem value="hide">Hide Widget</SelectItem>
             </SelectContent>
           </Select>

@@ -192,7 +192,7 @@ export function FlipDigit({
           className="flex items-center justify-center"
           style={{ height: `${cardHeight}px`, marginTop: `-${halfHeight}px` }}
         >
-          <span style={digitStyle}>{value}</span>
+          <span style={digitStyle}>{isAnimating ? prevValue : value}</span>
         </div>
       </div>
 
