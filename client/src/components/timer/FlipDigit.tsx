@@ -26,6 +26,12 @@ export function FlipDigit({
   const [isAnimating, setIsAnimating] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Fade-specific state: separate tracking so fade can switch digit at midpoint
+  const [fadeShownValue, setFadeShownValue] = useState(value);
+  const [fadeOpacity, setFadeOpacity] = useState(1);
+  const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Flip/slide animation — timeout must cover full flip animation (top 400ms + bottom 200ms delay + 400ms = 600ms)
   useEffect(() => {
     if (value !== displayValue) {
       setPrevValue(displayValue);
@@ -34,12 +40,27 @@ export function FlipDigit({
       timeoutRef.current = setTimeout(() => {
         setDisplayValue(value);
         setIsAnimating(false);
-      }, 450);
+      }, 620);
     }
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [value, displayValue]);
+
+  // Fade animation: phase 1 = fade out (120ms), phase 2 = swap digit + fade in (120ms)
+  useEffect(() => {
+    if (value !== fadeShownValue) {
+      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+      setFadeOpacity(0);
+      fadeTimeoutRef.current = setTimeout(() => {
+        setFadeShownValue(value);
+        setFadeOpacity(1);
+      }, 120);
+    }
+    return () => {
+      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+    };
+  }, [value, fadeShownValue]);
 
   const digitStyle: React.CSSProperties = {
     fontFamily,
@@ -84,12 +105,12 @@ export function FlipDigit({
         <span
           style={{
             ...digitStyle,
-            transition: "opacity 0.3s ease",
-            opacity: isAnimating ? 0.3 : 1,
+            transition: "opacity 0.12s ease",
+            opacity: fadeOpacity,
           }}
           className="block py-2 px-1"
         >
-          {isAnimating ? prevValue : value}
+          {fadeShownValue}
         </span>
       </div>
     );
