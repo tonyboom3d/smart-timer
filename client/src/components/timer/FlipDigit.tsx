@@ -85,10 +85,10 @@ export function FlipDigit({
     return (
       <div
         className="relative flex items-center justify-center px-1"
-        style={cardStyle}
+        style={{ ...cardStyle, height: `${cardHeight}px` }}
         data-testid={`digit-${value}`}
       >
-        <span style={digitStyle} className="block py-2 px-1">
+        <span style={digitStyle} className="block px-1">
           {value}
         </span>
       </div>
@@ -99,7 +99,7 @@ export function FlipDigit({
     return (
       <div
         className="relative flex items-center justify-center px-1"
-        style={cardStyle}
+        style={{ ...cardStyle, height: `${cardHeight}px` }}
         data-testid={`digit-${value}`}
       >
         <span
@@ -108,7 +108,7 @@ export function FlipDigit({
             transition: "opacity 0.12s ease",
             opacity: fadeOpacity,
           }}
-          className="block py-2 px-1"
+          className="block px-1"
         >
           {fadeShownValue}
         </span>
