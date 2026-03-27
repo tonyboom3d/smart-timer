@@ -193,7 +193,7 @@ export function FlipDigit({
         }}
       >
         <div className="flex items-center justify-center" style={{ height: `${cardHeight}px` }}>
-          <span style={digitStyle}>{isAnimating ? prevValue : value}</span>
+          <span style={digitStyle}>{value}</span>
         </div>
       </div>
 
