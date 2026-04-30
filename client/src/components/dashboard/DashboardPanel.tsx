@@ -598,7 +598,9 @@ function TimerSettingsTab() {
             <SelectContent>
               <SelectItem value="fixed">Fixed Date</SelectItem>
               <SelectItem value="evergreen">Recurring</SelectItem>
+              {/* Hidden intentionally — re-enable by uncommenting:
               <SelectItem value="dynamic">Dynamic (CMS)</SelectItem>
+              */}
             </SelectContent>
           </Select>
         </SettingRow>
@@ -1375,7 +1377,9 @@ function ActionsSettingsTab() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="message">Show Message</SelectItem>
+              {/* Hidden intentionally — re-enable by uncommenting:
               <SelectItem value="redirect">Redirect to URL</SelectItem>
+              */}
               <SelectItem value="hide">Hide Widget</SelectItem>
             </SelectContent>
           </Select>
