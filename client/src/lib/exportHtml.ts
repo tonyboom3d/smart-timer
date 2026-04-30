@@ -233,8 +233,11 @@ ${selector} .ct-progress-linear-bar {
   background: ${sepColor};
   box-shadow: 0 0 8px ${sepColor};
 }
+${selector} .ct-progress-circular-wrap {
+  width: ${Math.min(320, numFs * 6)}px;
+}
 ${selector} .ct-progress-circular-track {
-  stroke: ${sepColor};
+  stroke: ${digitBgCss === "transparent" ? sepColor : digitBgCss};
   opacity: 0.3;
 }
 ${selector} .ct-progress-circular-bar {
@@ -516,9 +519,8 @@ function hashConfig(c: TimerConfig): string {
   return h.toString(36);
 }
 
-function buildScript(c: TimerConfig): string {
-  // Snapshot the runtime config for the script — only what the engine needs.
-  const runtimeCfg = {
+function snapshotRuntimeCfg(c: TimerConfig) {
+  return {
     mode: c.mode,
     targetDate: c.targetDate,
     evergreenDuration: c.evergreenDuration,
@@ -530,17 +532,52 @@ function buildScript(c: TimerConfig): string {
     completionMessage: c.completionMessage || "Time's Up!",
     redirectUrl: c.redirectUrl || "",
     redirectTarget: c.redirectTarget || "same",
+    direction: c.direction === "rtl" ? "rtl" : "ltr",
+    headerText: c.headerText || "",
+    subHeaderText: c.subHeaderText || "",
     units: c.units,
     labels: c.labels,
-    storageKey: "ct_evergreen_start_v1_" + hashConfig(c),
   };
-  const cfgJson = escapeScriptJson(JSON.stringify(runtimeCfg));
+}
+
+function buildScript(
+  canonical: TimerConfig,
+  perBp: Record<Breakpoint, TimerConfig> | null,
+): string {
+  // Mode/target/evergreen/storage are global to the timer — taken from the
+  // canonical (desktop in per-bp mode, otherwise the only config). All other
+  // settings can vary per breakpoint and are applied via runtime switching.
+  const cfgsObject = perBp
+    ? {
+        desktop: snapshotRuntimeCfg(perBp.desktop),
+        tablet: snapshotRuntimeCfg(perBp.tablet),
+        mobile: snapshotRuntimeCfg(perBp.mobile),
+      }
+    : {
+        desktop: snapshotRuntimeCfg(canonical),
+        tablet: snapshotRuntimeCfg(canonical),
+        mobile: snapshotRuntimeCfg(canonical),
+      };
+
+  const storageKey = "ct_evergreen_start_v1_" + hashConfig(canonical);
+  const cfgsJson = escapeScriptJson(JSON.stringify(cfgsObject));
+  const storageKeyJson = escapeScriptJson(JSON.stringify(storageKey));
 
   return `
 <script>
 (function() {
-  var CFG = ${cfgJson};
-  var STORAGE_KEY = CFG.storageKey || "ct_evergreen_start_v1";
+  var CFGS = ${cfgsJson};
+  var STORAGE_KEY = ${storageKeyJson};
+
+  function pickBp() {
+    if (typeof window === "undefined" || !window.matchMedia) return "desktop";
+    if (window.matchMedia("(min-width: 1024px)").matches) return "desktop";
+    if (window.matchMedia("(min-width: 640px)").matches) return "tablet";
+    return "mobile";
+  }
+
+  var currentBp = pickBp();
+  var CFG = CFGS[currentBp];
 
   function getEvergreenStart() {
     if (CFG.evergreenPersist) {
@@ -600,9 +637,8 @@ function buildScript(c: TimerConfig): string {
     return parts.length > 0 ? parts.join(", ") + " and " + last + " remaining" : last + " remaining";
   }
 
-  var animStyle = CFG.animationStyle;
-
   function buildDigitCell(digitChar) {
+    var animStyle = CFG.animationStyle;
     var cell = document.createElement("div");
     cell.className = "ct-digit ct-" + animStyle;
     cell.setAttribute("data-value", digitChar);
@@ -628,6 +664,7 @@ function buildScript(c: TimerConfig): string {
   }
 
   function setDigit(cell, newVal) {
+    var animStyle = CFG.animationStyle;
     var prev = cell.getAttribute("data-value");
     if (prev === newVal) return;
     cell.setAttribute("data-value", newVal);
@@ -731,21 +768,136 @@ function buildScript(c: TimerConfig): string {
     };
   }
 
-  var unitContainers = document.querySelectorAll("[data-unit]");
-  var ariaEl = document.getElementById("ct-aria");
   var rootEl = document.querySelector(".ct-root");
-  var unitsEl = document.getElementById("ct-units");
-  var progressBar = document.querySelector(".ct-progress-linear-bar");
-  var circularBar = document.querySelector(".ct-progress-circular-bar");
+  var unitContainers, ariaEl, unitsEl, progressBar, circularBar;
   var CIRC_R = 96;
   var CIRC_LEN = 2 * Math.PI * CIRC_R;
-  if (circularBar) {
-    circularBar.setAttribute("stroke-dasharray", String(CIRC_LEN));
-    circularBar.setAttribute("stroke-dashoffset", String(CIRC_LEN));
+
+  function escHtml(s) {
+    if (s == null) return "";
+    return String(s).replace(/[&<>"']/g, function(ch) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+    });
   }
+
+  function buildInner(cfg) {
+    var html = "";
+    if (cfg.headerText) {
+      html += '<h1 class="ct-header" data-testid="timer-header">' + escHtml(cfg.headerText) + '</h1>';
+    }
+    if (cfg.subHeaderText) {
+      html += '<p class="ct-subheader" data-testid="timer-subheader">' + escHtml(cfg.subHeaderText) + '</p>';
+    }
+
+    var defs = [
+      { key: "days", show: cfg.units.showDays, label: cfg.labels.days, isMs: false },
+      { key: "hours", show: cfg.units.showHours, label: cfg.labels.hours, isMs: false },
+      { key: "minutes", show: cfg.units.showMinutes, label: cfg.labels.minutes, isMs: false },
+      { key: "seconds", show: cfg.units.showSeconds, label: cfg.labels.seconds, isMs: false },
+      { key: "ms", show: cfg.units.showMilliseconds, label: cfg.labels.milliseconds, isMs: true },
+    ];
+    var visible = [];
+    for (var i = 0; i < defs.length; i++) if (defs[i].show) visible.push(defs[i]);
+    if (visible.length === 0) {
+      visible.push({ key: "seconds", show: true, label: "Seconds", isMs: false });
+    }
+
+    var unitHtml = "";
+    for (var j = 0; j < visible.length; j++) {
+      var u = visible[j];
+      var isLast = j === visible.length - 1;
+      unitHtml +=
+        '<div class="ct-unit-group">' +
+          '<div class="ct-unit" data-testid="timer-unit-' + escHtml(String(u.label).toLowerCase()) + '">' +
+            '<div class="ct-digits" data-unit="' + u.key + '" data-is-ms="' + (u.isMs ? "1" : "0") + '"></div>' +
+            '<span class="ct-label">' + escHtml(u.label) + '</span>' +
+          '</div>' +
+          (isLast ? "" :
+            '<div class="ct-sep" aria-hidden="true"><span class="ct-sep-dot"></span><span class="ct-sep-dot"></span></div>'
+          ) +
+        '</div>';
+    }
+
+    var unitsBlock = '<div class="ct-units" id="ct-units">' + unitHtml + '</div>';
+
+    if (cfg.progressStyle === "circular") {
+      html +=
+        '<div class="ct-progress-circular-wrap">' +
+          '<svg class="ct-progress-circular" viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true">' +
+            '<circle class="ct-progress-circular-track" cx="100" cy="100" r="96" fill="none" stroke-width="4"></circle>' +
+            '<circle class="ct-progress-circular-bar" cx="100" cy="100" r="96" fill="none" stroke-width="4" stroke-linecap="round" transform="rotate(-90 100 100)"></circle>' +
+          '</svg>' +
+          '<div class="ct-progress-circular-inner">' + unitsBlock + '</div>' +
+        '</div>';
+    } else {
+      html += unitsBlock;
+    }
+
+    if (cfg.progressStyle === "linear") {
+      html += '<div class="ct-progress-linear" role="progressbar" aria-valuemin="0" aria-valuemax="100"><div class="ct-progress-linear-bar"></div></div>';
+    }
+
+    html += '<span class="ct-sr" id="ct-aria" aria-live="assertive" aria-atomic="true"></span>';
+    return html;
+  }
+
+  function applyRootClasses() {
+    if (!rootEl) return;
+    var animKlass =
+      CFG.animationStyle === "flip" ? "ct-flip" :
+      CFG.animationStyle === "slide" ? "ct-slide" :
+      CFG.animationStyle === "fade" ? "ct-fade" : "ct-none";
+    rootEl.className = "ct-root " + animKlass;
+    rootEl.setAttribute("dir", CFG.direction === "rtl" ? "rtl" : "ltr");
+    rootEl.setAttribute("role", "timer");
+    rootEl.setAttribute("aria-live", "polite");
+    rootEl.setAttribute("data-testid", "timer-display");
+  }
+
+  function renderBody() {
+    if (!rootEl) return;
+    applyRootClasses();
+    rootEl.innerHTML = buildInner(CFG);
+    unitContainers = rootEl.querySelectorAll("[data-unit]");
+    ariaEl = rootEl.querySelector("#ct-aria");
+    unitsEl = rootEl.querySelector("#ct-units");
+    progressBar = rootEl.querySelector(".ct-progress-linear-bar");
+    circularBar = rootEl.querySelector(".ct-progress-circular-bar");
+    if (circularBar) {
+      circularBar.setAttribute("stroke-dasharray", String(CIRC_LEN));
+      circularBar.setAttribute("stroke-dashoffset", String(CIRC_LEN));
+    }
+  }
+
+  renderBody();
 
   var target = getTarget();
   var completed = false;
+
+  function onResize() {
+    var bp = pickBp();
+    if (bp === currentBp) return;
+    currentBp = bp;
+    CFG = CFGS[currentBp];
+    if (completed) {
+      // Re-apply completion state with the new breakpoint's CFG
+      applyRootClasses();
+      showCompletion();
+      return;
+    }
+    renderBody();
+    // The existing requestAnimationFrame loop will populate the new
+    // markup on the next frame using the reassigned DOM references.
+  }
+
+  var resizeRaf = 0;
+  window.addEventListener("resize", function() {
+    if (resizeRaf) return;
+    resizeRaf = requestAnimationFrame(function() {
+      resizeRaf = 0;
+      onResize();
+    });
+  });
 
   function doRedirect() {
     if (CFG.completionAction !== "redirect" || !CFG.redirectUrl) return;
@@ -870,63 +1022,71 @@ export function generateExportHtml({ config, breakpointConfigs }: ExportInput): 
 
   const usePerBp = !!breakpointConfigs && effectiveConfig.responsiveMode === "per-breakpoint";
 
-  // In per-breakpoint mode, the desktop config is the canonical source for
-  // structural and runtime settings (visible units, labels, header text,
-  // animation style, completion behavior). The other breakpoints only
-  // override visual styles via @media. This is a documented constraint.
-  const rawStructural: TimerConfig =
-    usePerBp && breakpointConfigs ? { ...breakpointConfigs.desktop, mode: effectiveConfig.mode, targetDate: effectiveConfig.targetDate } : effectiveConfig;
-
-  // Defense in depth: even though TimerConfigSchema constrains these enums,
-  // normalize the structural enums against an explicit allow-list before
-  // they are interpolated into CSS class names, selectors, and JS string
-  // concatenations.
+  // Defense in depth: TimerConfigSchema enforces these enums, but normalize
+  // again against an explicit allow-list before they are interpolated into
+  // CSS selectors and JS string concatenations.
   const ALLOWED_ANIM = ["flip", "slide", "fade", "none"] as const;
   const ALLOWED_PROG = ["circular", "linear", "none"] as const;
-  const structuralConfig: TimerConfig = {
-    ...rawStructural,
-    animationStyle: (ALLOWED_ANIM as readonly string[]).includes(rawStructural.animationStyle)
-      ? rawStructural.animationStyle
+  const sanitize = (cfg: TimerConfig): TimerConfig => ({
+    ...cfg,
+    animationStyle: (ALLOWED_ANIM as readonly string[]).includes(cfg.animationStyle)
+      ? cfg.animationStyle
       : "none",
-    progressStyle: (ALLOWED_PROG as readonly string[]).includes(rawStructural.progressStyle)
-      ? rawStructural.progressStyle
+    progressStyle: (ALLOWED_PROG as readonly string[]).includes(cfg.progressStyle)
+      ? cfg.progressStyle
       : "none",
-    direction: rawStructural.direction === "rtl" ? "rtl" : "ltr",
-  };
+    direction: cfg.direction === "rtl" ? "rtl" : "ltr",
+  });
 
-  if (usePerBp && breakpointConfigs) {
-    warnings.push(
-      "Per-breakpoint export only adapts visual styles (colors, sizes, spacing) at each screen size. Structural settings (visible units, labels, header text, animation style, completion behavior) follow the Desktop breakpoint.",
-    );
-  }
+  // The canonical config supplies timer mode/target/evergreen/storage to the
+  // engine. In per-breakpoint mode, the desktop config is the canonical
+  // source for those global settings; every other field can vary per
+  // breakpoint and is applied at runtime via matchMedia.
+  const canonical: TimerConfig = sanitize(
+    usePerBp && breakpointConfigs
+      ? { ...breakpointConfigs.desktop, mode: effectiveConfig.mode, targetDate: effectiveConfig.targetDate }
+      : effectiveConfig,
+  );
 
-  // Gather fonts from main + breakpoints
-  const fonts = collectFonts(structuralConfig);
-  if (usePerBp && breakpointConfigs) {
-    (Object.values(breakpointConfigs) as TimerConfig[]).forEach((bp) =>
+  const sanitizedBps: Record<Breakpoint, TimerConfig> | null =
+    usePerBp && breakpointConfigs
+      ? {
+          desktop: sanitize({ ...breakpointConfigs.desktop, mode: effectiveConfig.mode, targetDate: effectiveConfig.targetDate }),
+          tablet: sanitize({ ...breakpointConfigs.tablet, mode: effectiveConfig.mode, targetDate: effectiveConfig.targetDate }),
+          mobile: sanitize({ ...breakpointConfigs.mobile, mode: effectiveConfig.mode, targetDate: effectiveConfig.targetDate }),
+        }
+      : null;
+
+  // Gather fonts from canonical + all breakpoints
+  const fonts = collectFonts(canonical);
+  if (sanitizedBps) {
+    (Object.values(sanitizedBps) as TimerConfig[]).forEach((bp) =>
       collectFonts(bp).forEach((f) => fonts.add(f)),
     );
   }
 
   const fontsLink = buildFontsLink(fonts);
-  const baseCss = buildBaseCss(structuralConfig.animationStyle);
+  const baseCss = buildBaseCss(canonical.animationStyle);
 
   // Per-breakpoint CSS — mobile-first ordering so every viewport is covered
-  // and larger breakpoints simply override the base mobile rules.
+  // and larger breakpoints override the base mobile rules.
   let bpCss = "";
-  if (usePerBp && breakpointConfigs) {
-    bpCss += `${buildBreakpointStyles(breakpointConfigs.mobile, "")}\n`;
-    bpCss += `@media (min-width: 640px) {\n${buildBreakpointStyles(breakpointConfigs.tablet, "")}\n}\n`;
-    bpCss += `@media (min-width: 1024px) {\n${buildBreakpointStyles(breakpointConfigs.desktop, "")}\n}\n`;
+  if (sanitizedBps) {
+    bpCss += `${buildBreakpointStyles(sanitizedBps.mobile, "")}\n`;
+    bpCss += `@media (min-width: 640px) {\n${buildBreakpointStyles(sanitizedBps.tablet, "")}\n}\n`;
+    bpCss += `@media (min-width: 1024px) {\n${buildBreakpointStyles(sanitizedBps.desktop, "")}\n}\n`;
   } else {
-    bpCss = buildBreakpointStyles(structuralConfig, "");
+    bpCss = buildBreakpointStyles(canonical, "");
   }
 
-  const body = buildBodyMarkup(structuralConfig);
-  const script = buildScript(structuralConfig);
+  // Initial server-rendered markup — uses the canonical (desktop) config.
+  // The runtime script replaces it with the matching breakpoint markup as
+  // soon as JS executes, and re-renders on resize when crossing breakpoints.
+  const body = buildBodyMarkup(canonical);
+  const script = buildScript(canonical, sanitizedBps);
 
   const html = `<!DOCTYPE html>
-<html lang="en" dir="${structuralConfig.direction === "rtl" ? "rtl" : "ltr"}">
+<html lang="en" dir="${canonical.direction === "rtl" ? "rtl" : "ltr"}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
