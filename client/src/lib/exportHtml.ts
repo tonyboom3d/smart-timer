@@ -68,20 +68,43 @@ function darkenHex(hex: string, amount: number): string {
   }
 }
 
+// CSS sanitizers — defend against malicious config values that could break
+// out of the inline <style> block (e.g. </style><script>...).
+function cssColor(v: string | undefined, fallback = "transparent"): string {
+  if (!v) return fallback;
+  const s = String(v).trim();
+  if (s === "transparent" || s === "currentColor" || s === "inherit") return s;
+  if (/^#[0-9a-fA-F]{3,8}$/.test(s)) return s;
+  if (/^rgba?\(\s*[\d.,\s%/]+\)$/.test(s)) return s;
+  if (/^hsla?\(\s*[\d.,\s%/]+\)$/.test(s)) return s;
+  if (/^[a-zA-Z]{1,30}$/.test(s)) return s; // named keyword
+  return fallback;
+}
+function cssFontFamily(v: string | undefined): string {
+  if (!v) return "Inter";
+  const s = String(v).replace(/[<>{}\\"';]/g, "").trim().slice(0, 80);
+  return s || "Inter";
+}
+function cssNumber(v: number | undefined, fallback = 0): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function bgCssForBreakpoint(c: TimerConfig): string {
+  const bgColor = cssColor(c.backgroundColor, "transparent");
   if (c.backgroundStyle === "transparent") {
     return `background-color: transparent;`;
   }
   if (c.backgroundStyle === "glassy") {
-    const opacity = c.glassOpacity !== undefined ? c.glassOpacity : 0.3;
-    const blur = c.glassBlur || 10;
-    const hex = c.backgroundColor === "transparent" ? "#ffffff" : c.backgroundColor;
+    const opacity = cssNumber(c.glassOpacity, 0.3);
+    const blur = cssNumber(c.glassBlur, 10);
+    const hex = bgColor === "transparent" ? "#ffffff" : bgColor;
     const r = parseInt(hex.slice(1, 3), 16) || 255;
     const g = parseInt(hex.slice(3, 5), 16) || 255;
     const b = parseInt(hex.slice(5, 7), 16) || 255;
     return `background-color: rgba(${r}, ${g}, ${b}, ${opacity}); backdrop-filter: blur(${blur}px); -webkit-backdrop-filter: blur(${blur}px);`;
   }
-  return `background-color: ${c.backgroundColor};`;
+  return `background-color: ${bgColor};`;
 }
 
 function visibleUnitsList(c: TimerConfig): Array<{ key: string; label: string; isMs: boolean }> {
@@ -98,70 +121,78 @@ function buildBreakpointStyles(
   c: TimerConfig,
   selector: string,
 ): string {
-  const numFs = c.numberTypography.fontSize;
-  const labelFs = c.labelTypography.fontSize;
-  const headerFs = c.headerTypography.fontSize;
+  const numFs = cssNumber(c.numberTypography.fontSize, 48);
+  const labelFs = cssNumber(c.labelTypography.fontSize, 12);
+  const headerFs = cssNumber(c.headerTypography.fontSize, 24);
+  const numWeight = cssNumber(c.numberTypography.fontWeight, 700);
+  const labelWeight = cssNumber(c.labelTypography.fontWeight, 400);
+  const headerWeight = cssNumber(c.headerTypography.fontWeight, 600);
+  const padding = cssNumber(c.padding, 24);
+  const gap = cssNumber(c.gap, 16);
+  const borderRadius = cssNumber(c.borderRadius, 8);
   const cardHeight = numFs * 1.3 + 12;
   const halfHeight = cardHeight / 2;
   const sepDot = Math.max(4, numFs * 0.1);
   const sepHeight = numFs * 1.1 + 16;
+  const numFontFamily = cssFontFamily(c.numberTypography.fontFamily);
+  const labelFontFamily = cssFontFamily(c.labelTypography.fontFamily);
+  const headerFontFamily = cssFontFamily(c.headerTypography.fontFamily);
+  const numColor = cssColor(c.numberTypography.color, "#1a1a1a");
+  const labelColor = cssColor(c.labelTypography.color, "#888888");
+  const headerColor = cssColor(c.headerTypography.color, "#1a1a1a");
+  const sepColor = cssColor(c.separatorColor, "#e0e0e0");
+  const safeDigitBgRaw = cssColor(c.digitBackground, "#f5f5f5");
+  const digitBgCss = safeDigitBgRaw === "transparent" ? "transparent" : safeDigitBgRaw;
   const darkerBg =
-    c.digitBackground && c.digitBackground !== "transparent"
-      ? darkenHex(c.digitBackground, 0.05)
-      : "transparent";
-  const digitBgCss =
-    c.digitBackground === "transparent" ? "transparent" : c.digitBackground;
+    digitBgCss !== "transparent" ? darkenHex(digitBgCss, 0.05) : "transparent";
+  const direction = c.direction === "rtl" ? "rtl" : "ltr";
   return `
 ${selector} .ct-root {
   ${bgCssForBreakpoint(c)}
-  padding: ${c.padding}px;
-  gap: ${c.padding * 0.75}px;
-  direction: ${c.direction};
+  padding: ${padding}px;
+  gap: ${padding * 0.75}px;
+  direction: ${direction};
 }
 ${selector} .ct-units {
-  gap: ${c.gap}px;
-  direction: ${c.direction};
+  gap: ${gap}px;
+  direction: ${direction};
 }
 ${selector} .ct-unit-group {
-  gap: ${c.gap}px;
+  gap: ${gap}px;
 }
 ${selector} .ct-unit {
   gap: ${Math.max(4, labelFs * 0.5)}px;
 }
 ${selector} .ct-label {
-  font-family: '${c.labelTypography.fontFamily}', sans-serif;
+  font-family: '${labelFontFamily}', sans-serif;
   font-size: ${labelFs}px;
-  font-weight: ${c.labelTypography.fontWeight};
-  color: ${c.labelTypography.color};
+  font-weight: ${labelWeight};
+  color: ${labelColor};
 }
 ${selector} .ct-digit {
   height: ${cardHeight}px;
   min-width: ${numFs * 0.75}px;
-  border-radius: ${c.borderRadius}px;
+  border-radius: ${borderRadius}px;
   background: ${digitBgCss};
 }
 ${selector} .ct-digit.ct-flip {
   background: transparent;
 }
 ${selector} .ct-digit .ct-num {
-  font-family: '${c.numberTypography.fontFamily}', sans-serif;
+  font-family: '${numFontFamily}', sans-serif;
   font-size: ${numFs}px;
-  font-weight: ${c.numberTypography.fontWeight};
-  color: ${c.numberTypography.color};
+  font-weight: ${numWeight};
+  color: ${numColor};
 }
 ${selector} .ct-flip-half {
   background: ${digitBgCss};
+  height: ${halfHeight}px;
+  border-radius: ${borderRadius}px ${borderRadius}px 0 0;
 }
 ${selector} .ct-flip-bottom-static, ${selector} .ct-flip-bottom-anim {
   background: ${darkerBg};
-}
-${selector} .ct-flip-half {
   height: ${halfHeight}px;
-  border-radius: ${c.borderRadius}px ${c.borderRadius}px 0 0;
-}
-${selector} .ct-flip-bottom-static, ${selector} .ct-flip-bottom-anim {
-  height: ${halfHeight}px;
-  border-radius: 0 0 ${c.borderRadius}px ${c.borderRadius}px;
+  border-radius: 0 0 ${borderRadius}px ${borderRadius}px;
   top: ${halfHeight}px;
 }
 ${selector} .ct-flip-divider {
@@ -174,16 +205,16 @@ ${selector} .ct-flip-bottom-static .ct-flip-half-inner, ${selector} .ct-flip-bot
   margin-top: -${halfHeight}px;
 }
 ${selector} .ct-header {
-  font-family: '${c.headerTypography.fontFamily}', sans-serif;
+  font-family: '${headerFontFamily}', sans-serif;
   font-size: ${headerFs}px;
-  font-weight: ${c.headerTypography.fontWeight};
-  color: ${c.headerTypography.color};
+  font-weight: ${headerWeight};
+  color: ${headerColor};
 }
 ${selector} .ct-subheader {
-  font-family: '${c.labelTypography.fontFamily}', sans-serif;
+  font-family: '${labelFontFamily}', sans-serif;
   font-size: ${labelFs + 2}px;
-  font-weight: ${c.labelTypography.fontWeight};
-  color: ${c.labelTypography.color};
+  font-weight: ${labelWeight};
+  color: ${labelColor};
 }
 ${selector} .ct-sep {
   gap: ${numFs * 0.2}px;
@@ -193,23 +224,31 @@ ${selector} .ct-sep {
 ${selector} .ct-sep-dot {
   width: ${sepDot}px;
   height: ${sepDot}px;
-  background: ${c.separatorColor};
+  background: ${sepColor};
 }
 ${selector} .ct-progress-linear {
-  background: ${c.digitBackground};
+  background: ${digitBgCss};
 }
 ${selector} .ct-progress-linear-bar {
-  background: ${c.separatorColor};
-  box-shadow: 0 0 8px ${c.separatorColor}40;
+  background: ${sepColor};
+  box-shadow: 0 0 8px ${sepColor};
+}
+${selector} .ct-progress-circular-track {
+  stroke: ${sepColor};
+  opacity: 0.3;
+}
+${selector} .ct-progress-circular-bar {
+  stroke: ${sepColor};
+  filter: drop-shadow(0 0 6px ${sepColor});
 }
 ${selector} .ct-completion {
-  padding: ${c.padding}px;
+  padding: ${padding}px;
 }
 ${selector} .ct-completion h2 {
-  font-family: '${c.headerTypography.fontFamily}', sans-serif;
+  font-family: '${headerFontFamily}', sans-serif;
   font-size: ${headerFs * 1.5}px;
-  font-weight: ${c.headerTypography.fontWeight};
-  color: ${c.headerTypography.color};
+  font-weight: ${headerWeight};
+  color: ${headerColor};
 }
 `;
 }
@@ -271,6 +310,31 @@ body { font-family: 'Inter', sans-serif; }
   width: 0%;
   border-radius: 2px;
   transition: width 0.5s ease-out;
+}
+.ct-progress-circular-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 320px;
+  max-width: 90vw;
+  aspect-ratio: 1 / 1;
+}
+.ct-progress-circular {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.ct-progress-circular-bar {
+  transition: stroke-dashoffset 0.5s ease-out;
+}
+.ct-progress-circular-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .ct-completion {
   display: flex;
@@ -405,13 +469,27 @@ function buildBodyMarkup(c: TimerConfig): string {
       ? `<div class="ct-progress-linear" role="progressbar" aria-valuemin="0" aria-valuemax="100"><div class="ct-progress-linear-bar"></div></div>`
       : "";
 
+  const unitsBlock = `
+    <div class="ct-units" id="ct-units">
+      ${unitHtml}
+    </div>`;
+
+  const wrappedUnits =
+    c.progressStyle === "circular"
+      ? `<div class="ct-progress-circular-wrap">
+           <svg class="ct-progress-circular" viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true">
+             <circle class="ct-progress-circular-track" cx="100" cy="100" r="96" fill="none" stroke-width="4"></circle>
+             <circle class="ct-progress-circular-bar" cx="100" cy="100" r="96" fill="none" stroke-width="4" stroke-linecap="round" transform="rotate(-90 100 100)"></circle>
+           </svg>
+           <div class="ct-progress-circular-inner">${unitsBlock}</div>
+         </div>`
+      : unitsBlock;
+
   return `
 <div class="ct-root ${animKlass}" role="timer" aria-live="polite" data-testid="timer-display">
   ${header}
   ${sub}
-  <div class="ct-units" id="ct-units">
-    ${unitHtml}
-  </div>
+  ${wrappedUnits}
   ${linear}
   <span class="ct-sr" id="ct-aria" aria-live="assertive" aria-atomic="true"></span>
 </div>
@@ -658,6 +736,13 @@ function buildScript(c: TimerConfig): string {
   var rootEl = document.querySelector(".ct-root");
   var unitsEl = document.getElementById("ct-units");
   var progressBar = document.querySelector(".ct-progress-linear-bar");
+  var circularBar = document.querySelector(".ct-progress-circular-bar");
+  var CIRC_R = 96;
+  var CIRC_LEN = 2 * Math.PI * CIRC_R;
+  if (circularBar) {
+    circularBar.setAttribute("stroke-dasharray", String(CIRC_LEN));
+    circularBar.setAttribute("stroke-dashoffset", String(CIRC_LEN));
+  }
 
   var target = getTarget();
   var completed = false;
@@ -666,19 +751,21 @@ function buildScript(c: TimerConfig): string {
     if (CFG.completionAction !== "redirect" || !CFG.redirectUrl) return;
     if (CFG.redirectTarget === "new") {
       window.open(CFG.redirectUrl, "_blank");
-    } else {
-      try {
-        if (window.top && window.top.location) {
-          window.top.location.href = CFG.redirectUrl;
-          return;
-        }
-      } catch (e) {}
-      try {
-        window.location.href = CFG.redirectUrl;
-      } catch (e) {
-        window.open(CFG.redirectUrl, "_blank");
-      }
+      return;
     }
+    // Same-tab: try top-level navigation first; if sandboxing blocks it,
+    // fall back directly to opening in a new tab so the user still gets there.
+    try {
+      if (window.top && window.top !== window.self && window.top.location) {
+        window.top.location.href = CFG.redirectUrl;
+        return;
+      }
+      if (window.top === window.self) {
+        window.location.href = CFG.redirectUrl;
+        return;
+      }
+    } catch (e) {}
+    window.open(CFG.redirectUrl, "_blank");
   }
 
   function showCompletion() {
@@ -721,6 +808,12 @@ function buildScript(c: TimerConfig): string {
     if (progressBar) {
       var p = Math.max(0, Math.min(1, t.progress));
       progressBar.style.width = (p * 100) + "%";
+    }
+
+    if (circularBar) {
+      var pc = Math.max(0, Math.min(1, t.progress));
+      var off = CIRC_LEN * (1 - pc);
+      circularBar.setAttribute("stroke-dashoffset", String(off));
     }
 
     if (ariaEl) ariaEl.textContent = ariaLabel(t);
@@ -775,9 +868,40 @@ export function generateExportHtml({ config, breakpointConfigs }: ExportInput): 
     );
   }
 
-  // Gather fonts from main + breakpoints
-  const fonts = collectFonts(effectiveConfig);
   const usePerBp = !!breakpointConfigs && effectiveConfig.responsiveMode === "per-breakpoint";
+
+  // In per-breakpoint mode, the desktop config is the canonical source for
+  // structural and runtime settings (visible units, labels, header text,
+  // animation style, completion behavior). The other breakpoints only
+  // override visual styles via @media. This is a documented constraint.
+  const rawStructural: TimerConfig =
+    usePerBp && breakpointConfigs ? { ...breakpointConfigs.desktop, mode: effectiveConfig.mode, targetDate: effectiveConfig.targetDate } : effectiveConfig;
+
+  // Defense in depth: even though TimerConfigSchema constrains these enums,
+  // normalize the structural enums against an explicit allow-list before
+  // they are interpolated into CSS class names, selectors, and JS string
+  // concatenations.
+  const ALLOWED_ANIM = ["flip", "slide", "fade", "none"] as const;
+  const ALLOWED_PROG = ["circular", "linear", "none"] as const;
+  const structuralConfig: TimerConfig = {
+    ...rawStructural,
+    animationStyle: (ALLOWED_ANIM as readonly string[]).includes(rawStructural.animationStyle)
+      ? rawStructural.animationStyle
+      : "none",
+    progressStyle: (ALLOWED_PROG as readonly string[]).includes(rawStructural.progressStyle)
+      ? rawStructural.progressStyle
+      : "none",
+    direction: rawStructural.direction === "rtl" ? "rtl" : "ltr",
+  };
+
+  if (usePerBp && breakpointConfigs) {
+    warnings.push(
+      "Per-breakpoint export only adapts visual styles (colors, sizes, spacing) at each screen size. Structural settings (visible units, labels, header text, animation style, completion behavior) follow the Desktop breakpoint.",
+    );
+  }
+
+  // Gather fonts from main + breakpoints
+  const fonts = collectFonts(structuralConfig);
   if (usePerBp && breakpointConfigs) {
     (Object.values(breakpointConfigs) as TimerConfig[]).forEach((bp) =>
       collectFonts(bp).forEach((f) => fonts.add(f)),
@@ -785,7 +909,7 @@ export function generateExportHtml({ config, breakpointConfigs }: ExportInput): 
   }
 
   const fontsLink = buildFontsLink(fonts);
-  const baseCss = buildBaseCss(effectiveConfig.animationStyle);
+  const baseCss = buildBaseCss(structuralConfig.animationStyle);
 
   // Per-breakpoint CSS — mobile-first ordering so every viewport is covered
   // and larger breakpoints simply override the base mobile rules.
@@ -795,14 +919,14 @@ export function generateExportHtml({ config, breakpointConfigs }: ExportInput): 
     bpCss += `@media (min-width: 640px) {\n${buildBreakpointStyles(breakpointConfigs.tablet, "")}\n}\n`;
     bpCss += `@media (min-width: 1024px) {\n${buildBreakpointStyles(breakpointConfigs.desktop, "")}\n}\n`;
   } else {
-    bpCss = buildBreakpointStyles(effectiveConfig, "");
+    bpCss = buildBreakpointStyles(structuralConfig, "");
   }
 
-  const body = buildBodyMarkup(effectiveConfig);
-  const script = buildScript(effectiveConfig);
+  const body = buildBodyMarkup(structuralConfig);
+  const script = buildScript(structuralConfig);
 
   const html = `<!DOCTYPE html>
-<html lang="en" dir="${effectiveConfig.direction}">
+<html lang="en" dir="${structuralConfig.direction === "rtl" ? "rtl" : "ltr"}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
