@@ -242,7 +242,7 @@ ${selector} .ct-progress-circular-track {
 }
 ${selector} .ct-progress-circular-bar {
   stroke: ${sepColor};
-  filter: drop-shadow(0 0 6px ${sepColor});
+  filter: drop-shadow(0 0 6px ${/^#[0-9a-fA-F]{6}$/.test(sepColor) ? sepColor + "30" : sepColor});
 }
 ${selector} .ct-completion {
   padding: ${padding}px;
@@ -481,8 +481,8 @@ function buildBodyMarkup(c: TimerConfig): string {
     c.progressStyle === "circular"
       ? `<div class="ct-progress-circular-wrap">
            <svg class="ct-progress-circular" viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true">
-             <circle class="ct-progress-circular-track" cx="100" cy="100" r="96" fill="none" stroke-width="4"></circle>
-             <circle class="ct-progress-circular-bar" cx="100" cy="100" r="96" fill="none" stroke-width="4" stroke-linecap="round" transform="rotate(-90 100 100)"></circle>
+             <circle class="ct-progress-circular-track" cx="100" cy="100" r="96" fill="none" stroke-width="3"></circle>
+             <circle class="ct-progress-circular-bar" cx="100" cy="100" r="96" fill="none" stroke-width="3" stroke-linecap="round" transform="rotate(-90 100 100)"></circle>
            </svg>
            <div class="ct-progress-circular-inner">${unitsBlock}</div>
          </div>`
@@ -824,8 +824,8 @@ function buildScript(
       html +=
         '<div class="ct-progress-circular-wrap">' +
           '<svg class="ct-progress-circular" viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true">' +
-            '<circle class="ct-progress-circular-track" cx="100" cy="100" r="96" fill="none" stroke-width="4"></circle>' +
-            '<circle class="ct-progress-circular-bar" cx="100" cy="100" r="96" fill="none" stroke-width="4" stroke-linecap="round" transform="rotate(-90 100 100)"></circle>' +
+            '<circle class="ct-progress-circular-track" cx="100" cy="100" r="96" fill="none" stroke-width="3"></circle>' +
+            '<circle class="ct-progress-circular-bar" cx="100" cy="100" r="96" fill="none" stroke-width="3" stroke-linecap="round" transform="rotate(-90 100 100)"></circle>' +
           '</svg>' +
           '<div class="ct-progress-circular-inner">' + unitsBlock + '</div>' +
         '</div>';
