@@ -4,6 +4,7 @@
 A production-ready, high-performance Countdown Timer Widget built with React + Vite, designed to run inside an IFrame within a Wix Blocks application. Features dual timer modes, flip clock animations, 5 design presets, full customization dashboard, and postMessage API integration.
 
 ## Recent Changes
+- 2026-04-30: Added Export feature — header button opens a modal with live iframe preview, source HTML textarea, Copy and Download .html actions. Generates a self-contained HTML file (inline CSS + vanilla-JS countdown engine + Google Fonts link) that bakes in the current settings. Per-breakpoint configs become @media queries when responsiveMode is per-breakpoint. Dynamic CMS mode falls back to a Fixed Date snapshot with a warning. Files: `client/src/lib/exportHtml.ts`, `client/src/components/dashboard/ExportModal.tsx`, dashboard header in `DashboardPanel.tsx`.
 - 2026-02-10: Moved breakpoint selector above tab menu with always-visible screen size icons, copy-to/apply-all options, and clear explanatory text. Removed Responsive Mode from Display tab.
 - 2026-02-10: Improved flip clock animation with split-card 3D design, transparent/glassy preview image fixes
 - 2026-02-10: Initial implementation of full widget with all core features

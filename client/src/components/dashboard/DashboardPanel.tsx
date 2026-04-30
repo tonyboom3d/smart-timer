@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2, Monitor, Tablet, Smartphone, Copy, CopyCheck, Info, Plus, Pencil, Trash2, FolderOpen, ChevronDown, ChevronRight, Check, X } from "lucide-react";
+import { Save, RotateCcw, Palette, Type, Clock, Zap, Layout, Settings2, Monitor, Tablet, Smartphone, Copy, CopyCheck, Info, Plus, Pencil, Trash2, FolderOpen, ChevronDown, ChevronRight, Check, X, Code2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useRef, useEffect } from "react";
+import { ExportModal } from "./ExportModal";
 
 export function DashboardPanel() {
   const config = useTimerStore((s) => s.config);
@@ -34,6 +35,7 @@ export function DashboardPanel() {
   const [renameValue, setRenameValue] = useState("");
   const [showNewInput, setShowNewInput] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     if (!showCopyMenu) return;
@@ -129,6 +131,22 @@ export function DashboardPanel() {
             >
               <RotateCcw className="w-4 h-4" />
             </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowExportModal(true)}
+                  data-testid="button-export"
+                >
+                  <Code2 className="w-4 h-4 mr-1" />
+                  Export
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs max-w-[220px]">
+                Generate a standalone HTML file with these settings baked in.
+              </TooltipContent>
+            </Tooltip>
             <Button
               size="sm"
               onClick={handleSave}
@@ -472,6 +490,8 @@ export function DashboardPanel() {
           </Tabs>
         </div>
       </ScrollArea>
+
+      <ExportModal open={showExportModal} onOpenChange={setShowExportModal} />
     </div>
   );
 }
