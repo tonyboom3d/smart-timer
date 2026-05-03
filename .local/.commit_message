@@ -1,0 +1,29 @@
+Add Export feature with full per-breakpoint runtime adaptation
+
+- New header button in DashboardPanel opens an Export modal with a live
+  iframe preview, the source HTML in a textarea, and Copy / Download .html
+  actions.
+- New generator at client/src/lib/exportHtml.ts produces a self-contained
+  HTML document (inline CSS, vanilla-JS countdown engine, Google Fonts
+  link) that bakes in the current timer config. No React, no build step,
+  drop-in ready.
+- Per-breakpoint mode embeds all three full configs (desktop/tablet/mobile)
+  in the script. The runtime picks the matching CFG via matchMedia at
+  load and re-renders the body markup on resize when crossing
+  breakpoints — so visible units, labels, header text, animation,
+  progress style, completion behavior, and direction all adapt at each
+  screen size, not just visual CSS. Visual styles continue to use
+  mobile-first @media queries.
+- Circular progress track stroke now uses `digitBackground` (matching
+  the React CircularProgress component); bar uses `separatorColor`.
+- Dynamic CMS mode falls back to a Fixed Date snapshot with a warning.
+- Security: cssColor / cssFontFamily / cssNumber sanitizers guard every
+  config-derived value interpolated into CSS; animationStyle,
+  progressStyle, and direction are allow-listed before interpolation.
+- Per-export FNV-1a hash is mixed into the evergreen localStorage key so
+  multiple exported timers on the same domain do not collide.
+- Same-tab redirect tries top-level navigation first, then falls back
+  directly to window.open(url, "_blank") when sandboxed.
+- Verified: typecheck clean, generator unit tests pass for single and
+  per-breakpoint configs, browser screenshot at desktop width shows
+  ticking flip clock with circular progress ring rendering correctly.

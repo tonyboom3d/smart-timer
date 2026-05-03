@@ -287,6 +287,3 @@ export const FONT_OPTIONS = [
   "Geist",
 ];
 
-export const users = undefined as any;
-export type InsertUser = any;
-export type User = any;

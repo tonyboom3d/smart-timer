@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Router, Switch, Route } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,13 +8,15 @@ import { useEffect } from "react";
 import { useTimerStore } from "@/lib/store";
 import WidgetPage from "@/pages/WidgetPage";
 
-function Router() {
+function AppRouter() {
   return (
-    <Switch>
-      <Route path="/" component={WidgetPage} />
-      <Route path="/dashboard" component={DashboardRoute} />
-      <Route component={WidgetPage} />
-    </Switch>
+    <Router hook={useHashLocation}>
+      <Switch>
+        <Route path="/" component={WidgetPage} />
+        <Route path="/dashboard" component={DashboardRoute} />
+        <Route component={WidgetPage} />
+      </Switch>
+    </Router>
   );
 }
 
@@ -51,7 +54,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={0}>
         <Toaster />
-        <Router />
+        <AppRouter />
       </TooltipProvider>
     </QueryClientProvider>
   );
