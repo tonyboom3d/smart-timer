@@ -1,11 +1,15 @@
 import { useTimerStore } from "@/lib/store";
 import { motion } from "framer-motion";
+import { useResponsiveScale } from "@/hooks/useResponsiveScale";
 
 export function CompletionMessage() {
   const config = useTimerStore((s) => s.config);
+  const [scaleRef, rawScale] = useResponsiveScale();
+  const scale = config.autoResponsiveText !== false ? rawScale : 1;
 
   return (
     <motion.div
+      ref={scaleRef}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
@@ -21,7 +25,7 @@ export function CompletionMessage() {
         <h2
           style={{
             fontFamily: config.headerTypography.fontFamily,
-            fontSize: `${config.headerTypography.fontSize * 1.5}px`,
+            fontSize: `${config.headerTypography.fontSize * 1.5 * scale}px`,
             fontWeight: config.headerTypography.fontWeight,
             color: config.headerTypography.color,
             lineHeight: 1.2,

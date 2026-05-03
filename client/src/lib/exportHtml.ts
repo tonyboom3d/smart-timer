@@ -117,10 +117,31 @@ function visibleUnitsList(c: TimerConfig): Array<{ key: string; label: string; i
   return arr;
 }
 
+function chunkRows<T>(arr: T[], parts: number): T[][] {
+  const n = arr.length;
+  const cap = Math.max(1, Math.min(parts, Math.max(1, n)));
+  if (cap <= 1 || n <= 1) return [arr];
+  const out: T[][] = [];
+  const base = Math.floor(n / cap);
+  const extra = n % cap;
+  let i = 0;
+  for (let k = 0; k < cap; k++) {
+    const size = base + (k < extra ? 1 : 0);
+    out.push(arr.slice(i, i + size));
+    i += size;
+  }
+  return out;
+}
+
 function buildBreakpointStyles(
   c: TimerConfig,
   selector: string,
 ): string {
+  const autoResp = c.autoResponsiveText !== false;
+  // Scalable values use calc(Xpx * var(--ct-scale, 1)) when auto-responsive is on.
+  const s = (n: number) =>
+    autoResp ? `calc(${n}px * var(--ct-scale, 1))` : `${n}px`;
+
   const numFs = cssNumber(c.numberTypography.fontSize, 48);
   const labelFs = cssNumber(c.labelTypography.fontSize, 12);
   const headerFs = cssNumber(c.headerTypography.fontSize, 24);
@@ -157,21 +178,24 @@ ${selector} .ct-units {
   gap: ${gap}px;
   direction: ${direction};
 }
+${selector} .ct-units-row {
+  gap: ${gap}px;
+}
 ${selector} .ct-unit-group {
   gap: ${gap}px;
 }
 ${selector} .ct-unit {
-  gap: ${Math.max(4, labelFs * 0.5)}px;
+  gap: ${s(Math.max(4, labelFs * 0.5))};
 }
 ${selector} .ct-label {
   font-family: '${labelFontFamily}', sans-serif;
-  font-size: ${labelFs}px;
+  font-size: ${s(labelFs)};
   font-weight: ${labelWeight};
   color: ${labelColor};
 }
 ${selector} .ct-digit {
-  height: ${cardHeight}px;
-  min-width: ${numFs * 0.75}px;
+  height: ${s(cardHeight)};
+  min-width: ${s(numFs * 0.75)};
   border-radius: ${borderRadius}px;
   background: ${digitBgCss};
 }
@@ -180,50 +204,50 @@ ${selector} .ct-digit.ct-flip {
 }
 ${selector} .ct-digit .ct-num {
   font-family: '${numFontFamily}', sans-serif;
-  font-size: ${numFs}px;
+  font-size: ${s(numFs)};
   font-weight: ${numWeight};
   color: ${numColor};
 }
 ${selector} .ct-flip-half {
   background: ${digitBgCss};
-  height: ${halfHeight}px;
+  height: ${s(halfHeight)};
   border-radius: ${borderRadius}px ${borderRadius}px 0 0;
 }
 ${selector} .ct-flip-bottom-static, ${selector} .ct-flip-bottom-anim {
   background: ${darkerBg};
-  height: ${halfHeight}px;
+  height: ${s(halfHeight)};
   border-radius: 0 0 ${borderRadius}px ${borderRadius}px;
-  top: ${halfHeight}px;
+  top: ${s(halfHeight)};
 }
 ${selector} .ct-flip-divider {
-  top: ${halfHeight - 0.5}px;
+  top: ${s(halfHeight - 0.5)};
 }
 ${selector} .ct-flip-half-inner {
-  height: ${cardHeight}px;
+  height: ${s(cardHeight)};
 }
 ${selector} .ct-flip-bottom-static .ct-flip-half-inner, ${selector} .ct-flip-bottom-anim .ct-flip-half-inner {
-  margin-top: -${halfHeight}px;
+  margin-top: ${s(-halfHeight)};
 }
 ${selector} .ct-header {
   font-family: '${headerFontFamily}', sans-serif;
-  font-size: ${headerFs}px;
+  font-size: ${s(headerFs)};
   font-weight: ${headerWeight};
   color: ${headerColor};
 }
 ${selector} .ct-subheader {
   font-family: '${labelFontFamily}', sans-serif;
-  font-size: ${labelFs + 2}px;
+  font-size: ${s(labelFs + 2)};
   font-weight: ${labelWeight};
   color: ${labelColor};
 }
 ${selector} .ct-sep {
-  gap: ${numFs * 0.2}px;
-  padding-top: ${numFs * 0.15}px;
-  height: ${sepHeight}px;
+  gap: ${s(numFs * 0.2)};
+  padding-top: ${s(numFs * 0.15)};
+  height: ${s(sepHeight)};
 }
 ${selector} .ct-sep-dot {
-  width: ${sepDot}px;
-  height: ${sepDot}px;
+  width: ${s(sepDot)};
+  height: ${s(sepDot)};
   background: ${sepColor};
 }
 ${selector} .ct-progress-linear {
@@ -234,7 +258,7 @@ ${selector} .ct-progress-linear-bar {
   box-shadow: 0 0 8px ${sepColor};
 }
 ${selector} .ct-progress-circular-wrap {
-  width: ${Math.min(320, numFs * 6)}px;
+  width: ${s(Math.min(320, numFs * 6))};
 }
 ${selector} .ct-progress-circular-track {
   stroke: ${digitBgCss === "transparent" ? sepColor : digitBgCss};
@@ -249,7 +273,7 @@ ${selector} .ct-completion {
 }
 ${selector} .ct-completion h2 {
   font-family: '${headerFontFamily}', sans-serif;
-  font-size: ${headerFs * 1.5}px;
+  font-size: ${s(headerFs * 1.5)};
   font-weight: ${headerWeight};
   color: ${headerColor};
 }
@@ -273,9 +297,15 @@ body { font-family: 'Inter', sans-serif; }
 .ct-subheader { text-align: center; margin: 0; opacity: 0.8; }
 .ct-units {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.ct-units-row {
+  display: flex;
   align-items: flex-start;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .ct-unit-group { display: flex; align-items: flex-start; }
 .ct-unit { display: flex; flex-direction: column; align-items: center; }
@@ -443,14 +473,18 @@ function buildBodyMarkup(c: TimerConfig): string {
           ? "ct-fade"
           : "ct-none";
 
-  const unitHtml = units
-    .map((u, idx) => {
-      const isLast = idx === units.length - 1;
-      const sep = !isLast
-        ? `<div class="ct-sep" aria-hidden="true"><span class="ct-sep-dot"></span><span class="ct-sep-dot"></span></div>`
-        : "";
-      // Each unit has a digits container, JS will populate digit cells per current value
-      return `
+  const rowCount = Math.min(Math.max(1, cssNumber(c.unitRows, 1)), units.length || 1);
+  const rows = chunkRows(units, rowCount);
+
+  const rowsHtml = rows
+    .map((row) => {
+      const rowHtml = row
+        .map((u, idx) => {
+          const isLast = idx === row.length - 1;
+          const sep = !isLast
+            ? `<div class="ct-sep" aria-hidden="true"><span class="ct-sep-dot"></span><span class="ct-sep-dot"></span></div>`
+            : "";
+          return `
         <div class="ct-unit-group">
           <div class="ct-unit" data-testid="timer-unit-${escapeHtml(u.label.toLowerCase())}">
             <div class="ct-digits" data-unit="${u.key}" data-is-ms="${u.isMs ? "1" : "0"}"></div>
@@ -458,6 +492,9 @@ function buildBodyMarkup(c: TimerConfig): string {
           </div>
           ${sep}
         </div>`;
+        })
+        .join("");
+      return `<div class="ct-units-row">${rowHtml}</div>`;
     })
     .join("");
 
@@ -474,7 +511,7 @@ function buildBodyMarkup(c: TimerConfig): string {
 
   const unitsBlock = `
     <div class="ct-units" id="ct-units">
-      ${unitHtml}
+      ${rowsHtml}
     </div>`;
 
   const wrappedUnits =
@@ -537,6 +574,8 @@ function snapshotRuntimeCfg(c: TimerConfig) {
     subHeaderText: c.subHeaderText || "",
     units: c.units,
     labels: c.labels,
+    autoResponsiveText: c.autoResponsiveText !== false,
+    unitRows: Math.min(5, Math.max(1, cssNumber(c.unitRows, 1))),
   };
 }
 
@@ -780,6 +819,34 @@ function buildScript(
     });
   }
 
+  function chunkRowsJs(arr, parts) {
+    var n = arr.length;
+    var cap = Math.max(1, Math.min(parts, Math.max(1, n)));
+    if (cap <= 1 || n <= 1) return [arr];
+    var out = [];
+    var base = Math.floor(n / cap);
+    var extra = n % cap;
+    var i = 0;
+    for (var k = 0; k < cap; k++) {
+      var size = base + (k < extra ? 1 : 0);
+      out.push(arr.slice(i, i + size));
+      i += size;
+    }
+    return out;
+  }
+
+  function applyScale() {
+    if (!rootEl) return;
+    if (!CFG.autoResponsiveText) {
+      rootEl.style.removeProperty('--ct-scale');
+      return;
+    }
+    var w = rootEl.clientWidth || 600;
+    var sc = w / 600;
+    if (sc < 0.5) sc = 0.5; else if (sc > 1.5) sc = 1.5;
+    rootEl.style.setProperty('--ct-scale', String(sc));
+  }
+
   function buildInner(cfg) {
     var html = "";
     if (cfg.headerText) {
@@ -802,23 +869,30 @@ function buildScript(
       visible.push({ key: "seconds", show: true, label: "Seconds", isMs: false });
     }
 
-    var unitHtml = "";
-    for (var j = 0; j < visible.length; j++) {
-      var u = visible[j];
-      var isLast = j === visible.length - 1;
-      unitHtml +=
-        '<div class="ct-unit-group">' +
-          '<div class="ct-unit" data-testid="timer-unit-' + escHtml(String(u.label).toLowerCase()) + '">' +
-            '<div class="ct-digits" data-unit="' + u.key + '" data-is-ms="' + (u.isMs ? "1" : "0") + '"></div>' +
-            '<span class="ct-label">' + escHtml(u.label) + '</span>' +
-          '</div>' +
-          (isLast ? "" :
-            '<div class="ct-sep" aria-hidden="true"><span class="ct-sep-dot"></span><span class="ct-sep-dot"></span></div>'
-          ) +
-        '</div>';
+    var rowCount = Math.min(Math.max(1, Math.min(5, cfg.unitRows || 1)), visible.length);
+    var rows = chunkRowsJs(visible, rowCount);
+    var rowsHtml = "";
+    for (var r = 0; r < rows.length; r++) {
+      var rowDefs = rows[r];
+      var rowHtml = "";
+      for (var j = 0; j < rowDefs.length; j++) {
+        var u = rowDefs[j];
+        var isLast = j === rowDefs.length - 1;
+        rowHtml +=
+          '<div class="ct-unit-group">' +
+            '<div class="ct-unit" data-testid="timer-unit-' + escHtml(String(u.label).toLowerCase()) + '">' +
+              '<div class="ct-digits" data-unit="' + u.key + '" data-is-ms="' + (u.isMs ? "1" : "0") + '"></div>' +
+              '<span class="ct-label">' + escHtml(u.label) + '</span>' +
+            '</div>' +
+            (isLast ? "" :
+              '<div class="ct-sep" aria-hidden="true"><span class="ct-sep-dot"></span><span class="ct-sep-dot"></span></div>'
+            ) +
+          '</div>';
+      }
+      rowsHtml += '<div class="ct-units-row">' + rowHtml + '</div>';
     }
 
-    var unitsBlock = '<div class="ct-units" id="ct-units">' + unitHtml + '</div>';
+    var unitsBlock = '<div class="ct-units" id="ct-units">' + rowsHtml + '</div>';
 
     if (cfg.progressStyle === "circular") {
       html +=
@@ -870,6 +944,12 @@ function buildScript(
   }
 
   renderBody();
+  applyScale();
+
+  if (typeof ResizeObserver !== 'undefined') {
+    var scaleObs = new ResizeObserver(function() { applyScale(); });
+    if (rootEl) scaleObs.observe(rootEl);
+  }
 
   var target = getTarget();
   var completed = false;
@@ -883,9 +963,11 @@ function buildScript(
       // Re-apply completion state with the new breakpoint's CFG
       applyRootClasses();
       showCompletion();
+      applyScale();
       return;
     }
     renderBody();
+    applyScale();
     // The existing requestAnimationFrame loop will populate the new
     // markup on the next frame using the reassigned DOM references.
   }
