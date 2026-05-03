@@ -82,6 +82,12 @@ export const TimerConfigSchema = z.object({
     fontWeight: z.number().default(600),
     color: z.string().default("#ffffff"),
   }).default({}),
+  subHeaderTypography: z.object({
+    fontFamily: z.string().default("Inter"),
+    fontSize: z.number().default(14),
+    fontWeight: z.number().default(400),
+    color: z.string().default("#999999"),
+  }).default({}),
 
   completionAction: CompletionActionSchema.default("message"),
   completionMessage: z.string().default("Time's Up!"),
@@ -106,6 +112,9 @@ export const TimerConfigSchema = z.object({
   showGlassPreviewImage: z.boolean().default(false),
 
   responsiveMode: z.enum(["all", "per-breakpoint"]).default("all"),
+
+  autoResponsiveText: z.boolean().default(true),
+  unitRows: z.number().int().min(1).max(5).default(1),
 });
 export type TimerConfig = z.infer<typeof TimerConfigSchema>;
 

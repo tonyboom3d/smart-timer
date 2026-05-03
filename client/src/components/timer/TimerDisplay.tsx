@@ -4,32 +4,49 @@ import { TimerSeparator } from "./Separator";
 import { CircularProgress } from "./CircularProgress";
 import { LinearProgress } from "./LinearProgress";
 import { CompletionMessage } from "./CompletionMessage";
+import { useResponsiveScale } from "@/hooks/useResponsiveScale";
+
+type UnitItem = {
+  key: string;
+  value: number;
+  label: string;
+  show: boolean;
+  maxDigits: number;
+  isMs?: boolean;
+};
+
+function chunkRows<T>(arr: T[], parts: number): T[][] {
+  const n = arr.length;
+  const cap = Math.max(1, Math.min(parts, Math.max(1, n)));
+  if (cap <= 1 || n <= 1) return [arr];
+  const out: T[][] = [];
+  const base = Math.floor(n / cap);
+  const extra = n % cap;
+  let i = 0;
+  for (let k = 0; k < cap; k++) {
+    const size = base + (k < extra ? 1 : 0);
+    out.push(arr.slice(i, i + size));
+    i += size;
+  }
+  return out;
+}
 
 export function TimerDisplay() {
   const config = useTimerStore((s) => s.config);
   const time = useTimerStore((s) => s.timeRemaining);
   const isComplete = useTimerStore((s) => s.isComplete);
+  const [scaleRef, rawScale] = useResponsiveScale();
+  const scale = config.autoResponsiveText !== false ? rawScale : 1;
 
   if (isComplete && config.completionAction === "hide") {
     return null;
-  }
-
-  if (isComplete && config.completionAction === "message") {
-    return <CompletionMessage />;
   }
 
   if (isComplete) {
     return <CompletionMessage />;
   }
 
-  const units: Array<{
-    key: string;
-    value: number;
-    label: string;
-    show: boolean;
-    maxDigits: number;
-    isMs?: boolean;
-  }> = [
+  const units: UnitItem[] = [
     { key: "days", value: time.days, label: config.labels.days, show: config.units.showDays, maxDigits: time.days > 99 ? 3 : 2 },
     { key: "hours", value: time.hours, label: config.labels.hours, show: config.units.showHours, maxDigits: 2 },
     { key: "minutes", value: time.minutes, label: config.labels.minutes, show: config.units.showMinutes, maxDigits: 2 },
@@ -39,37 +56,55 @@ export function TimerDisplay() {
 
   const visibleUnits = units.filter((u) => u.show);
 
-  const timerContent = (
+  const scaledNumFs = config.numberTypography.fontSize * scale;
+  const scaledLabelFs = config.labelTypography.fontSize * scale;
+  const scaledHeaderFs = config.headerTypography.fontSize * scale;
+  const scaledSubHeaderFs = config.subHeaderTypography.fontSize * scale;
+
+  const scaledNumberTypography = { ...config.numberTypography, fontSize: scaledNumFs };
+  const scaledLabelTypography = { ...config.labelTypography, fontSize: scaledLabelFs };
+
+  const rowCount = Math.min(config.unitRows ?? 1, visibleUnits.length);
+  const rows = chunkRows(visibleUnits, rowCount);
+
+  const renderRow = (row: UnitItem[], rowKey: number) => (
     <div
-      className="flex items-start justify-center flex-wrap"
-      style={{
-        gap: `${config.gap}px`,
-        direction: config.direction,
-      }}
+      key={rowKey}
+      className="flex items-start justify-center"
+      style={{ gap: `${config.gap}px`, flexWrap: "nowrap" }}
     >
-      {visibleUnits.map((unit, index) => (
+      {row.map((unit, idx) => (
         <div key={unit.key} className="flex items-start" style={{ gap: `${config.gap}px` }}>
           <TimerUnit
             value={unit.value}
             label={unit.label}
             maxDigits={unit.maxDigits}
-            numberTypography={config.numberTypography}
-            labelTypography={config.labelTypography}
+            numberTypography={scaledNumberTypography}
+            labelTypography={scaledLabelTypography}
             digitBackground={config.digitBackground}
             borderRadius={config.borderRadius}
             animationStyle={config.animationStyle}
-            isMilliseconds={unit.isMs}
+            isMilliseconds={!!unit.isMs}
           />
-          {index < visibleUnits.length - 1 && (
+          {idx < row.length - 1 && (
             <TimerSeparator
               color={config.separatorColor}
-              fontSize={config.numberTypography.fontSize}
+              fontSize={scaledNumFs}
             />
           )}
         </div>
       ))}
     </div>
   );
+
+  const timerContent =
+    rows.length === 1 ? (
+      renderRow(rows[0], 0)
+    ) : (
+      <div className="flex flex-col items-center" style={{ gap: `${config.gap}px` }}>
+        {rows.map((row, rowIdx) => renderRow(row, rowIdx))}
+      </div>
+    );
 
   const ariaLabel = buildAriaLabel(time, config);
 
@@ -95,6 +130,7 @@ export function TimerDisplay() {
 
   return (
     <div
+      ref={scaleRef}
       className="flex flex-col items-center w-full"
       style={{
         ...getBackgroundStyle(),
@@ -111,7 +147,7 @@ export function TimerDisplay() {
         <h1
           style={{
             fontFamily: config.headerTypography.fontFamily,
-            fontSize: `${config.headerTypography.fontSize}px`,
+            fontSize: `${scaledHeaderFs}px`,
             fontWeight: config.headerTypography.fontWeight,
             color: config.headerTypography.color,
             textAlign: "center",
@@ -127,13 +163,12 @@ export function TimerDisplay() {
       {config.subHeaderText && (
         <p
           style={{
-            fontFamily: config.labelTypography.fontFamily,
-            fontSize: `${config.labelTypography.fontSize + 2}px`,
-            fontWeight: config.labelTypography.fontWeight,
-            color: config.labelTypography.color,
+            fontFamily: config.subHeaderTypography.fontFamily,
+            fontSize: `${scaledSubHeaderFs}px`,
+            fontWeight: config.subHeaderTypography.fontWeight,
+            color: config.subHeaderTypography.color,
             textAlign: "center",
             margin: 0,
-            opacity: 0.8,
           }}
           data-testid="timer-subheader"
         >
@@ -146,7 +181,7 @@ export function TimerDisplay() {
           progress={time.progress}
           color={config.separatorColor}
           trackColor={config.digitBackground}
-          size={Math.min(320, config.numberTypography.fontSize * 6)}
+          size={Math.min(320, config.numberTypography.fontSize * 6) * scale}
           strokeWidth={3}
         >
           {timerContent}

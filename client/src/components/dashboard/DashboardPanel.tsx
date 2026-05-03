@@ -1153,6 +1153,22 @@ function TypographySettingsTab() {
 
   return (
     <>
+      <SectionCard
+        title="Auto-Responsive Text"
+        tooltip="When on, all text sizes scale automatically with the container width so the timer fits any size."
+      >
+        <SettingRow label="Auto-Responsive">
+          <Switch
+            checked={config.autoResponsiveText !== false}
+            onCheckedChange={(v) => setConfig({ autoResponsiveText: v })}
+            data-testid="switch-auto-responsive-text"
+          />
+        </SettingRow>
+        <p className="text-[10px] leading-tight" style={{ color: "#9ca3af" }}>
+          When on, all text sizes scale automatically with the container width so the timer fits any size.
+        </p>
+      </SectionCard>
+
       <SectionCard title="Number Typography" tooltip="Font, size, weight and color of the countdown numbers.">
         <SettingRow label="Font">
           <Select
@@ -1313,6 +1329,23 @@ function TypographySettingsTab() {
             </span>
           </div>
         </SettingRow>
+        <SettingRow label="Weight">
+          <Select
+            value={String(config.headerTypography.fontWeight)}
+            onValueChange={(v) =>
+              setConfig({ headerTypography: { ...config.headerTypography, fontWeight: parseInt(v) } })
+            }
+          >
+            <SelectTrigger className="w-[120px]" data-testid="select-header-weight">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[300, 400, 500, 600, 700, 800, 900].map((w) => (
+                <SelectItem key={w} value={String(w)}>{w}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingRow>
         <SettingRow label="Color">
           <div className="flex items-center gap-2">
             <input
@@ -1323,6 +1356,75 @@ function TypographySettingsTab() {
               }
               className="w-8 h-8 rounded cursor-pointer border-0"
               data-testid="color-header"
+            />
+          </div>
+        </SettingRow>
+      </SectionCard>
+
+      <SectionCard title="Sub-header Typography" tooltip="Font and styling for the sub-header text below the header.">
+        <SettingRow label="Font">
+          <Select
+            value={config.subHeaderTypography.fontFamily}
+            onValueChange={(v) =>
+              setConfig({ subHeaderTypography: { ...config.subHeaderTypography, fontFamily: v } })
+            }
+          >
+            <SelectTrigger className="w-[160px]" data-testid="select-subheader-font">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FONT_OPTIONS.map((font) => (
+                <SelectItem key={font} value={font}>
+                  <span style={{ fontFamily: font }}>{font}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingRow>
+        <SettingRow label="Size">
+          <div className="flex items-center gap-2 w-[160px]">
+            <Slider
+              value={[config.subHeaderTypography.fontSize]}
+              onValueChange={([v]) =>
+                setConfig({ subHeaderTypography: { ...config.subHeaderTypography, fontSize: v } })
+              }
+              min={10}
+              max={36}
+              step={1}
+              data-testid="slider-subheader-size"
+            />
+            <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>
+              {config.subHeaderTypography.fontSize}
+            </span>
+          </div>
+        </SettingRow>
+        <SettingRow label="Weight">
+          <Select
+            value={String(config.subHeaderTypography.fontWeight)}
+            onValueChange={(v) =>
+              setConfig({ subHeaderTypography: { ...config.subHeaderTypography, fontWeight: parseInt(v) } })
+            }
+          >
+            <SelectTrigger className="w-[120px]" data-testid="select-subheader-weight">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[300, 400, 500, 600, 700, 800, 900].map((w) => (
+                <SelectItem key={w} value={String(w)}>{w}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingRow>
+        <SettingRow label="Color">
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={config.subHeaderTypography.color}
+              onChange={(e) =>
+                setConfig({ subHeaderTypography: { ...config.subHeaderTypography, color: e.target.value } })
+              }
+              className="w-8 h-8 rounded cursor-pointer border-0"
+              data-testid="color-subheader"
             />
           </div>
         </SettingRow>
@@ -1375,6 +1477,25 @@ function DisplaySettingsTab() {
             data-testid="input-subheader-text"
           />
         </div>
+      </SectionCard>
+
+      <SectionCard title="Layout" tooltip="Control how timer units are arranged across rows.">
+        <SettingRow
+          label="Rows"
+          tooltip="How many lines to split the timer units across. 1 = all on one line; 2 = split into two rows; etc."
+        >
+          <div className="flex items-center gap-2 w-[160px]">
+            <Slider
+              value={[config.unitRows ?? 1]}
+              onValueChange={([v]) => setConfig({ unitRows: v })}
+              min={1}
+              max={5}
+              step={1}
+              data-testid="slider-unit-rows"
+            />
+            <span className="text-xs w-8 text-right" style={{ color: "#6b7280" }}>{config.unitRows ?? 1}</span>
+          </div>
+        </SettingRow>
       </SectionCard>
     </>
   );
