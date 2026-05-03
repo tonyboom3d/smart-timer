@@ -52,6 +52,9 @@ export function usePostMessage() {
           removeTemplateFromList(data.payload.id);
           break;
         }
+        case "CLIPBOARD_COPIED":
+        case "CLIPBOARD_COPY_FAILED":
+          break;
       }
     },
     [setConfig, setAppMode, applyTheme, setTemplates, loadTemplate, updateTemplateInList, removeTemplateFromList]

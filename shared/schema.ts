@@ -172,13 +172,25 @@ export interface PostMessageTemplateDeleted {
   payload: { id: string };
 }
 
+/** Parent (e.g. Wix Velo) should call wixWindowFrontend.copyToClipboard(text) then post this back. */
+export interface PostMessageClipboardCopied {
+  type: "CLIPBOARD_COPIED";
+}
+
+export interface PostMessageClipboardCopyFailed {
+  type: "CLIPBOARD_COPY_FAILED";
+  payload?: { message?: string };
+}
+
 export type IncomingMessage =
   | PostMessageInit
   | PostMessageUpdate
   | PostMessageTemplatesList
   | PostMessageTemplateData
   | PostMessageTemplateSaved
-  | PostMessageTemplateDeleted;
+  | PostMessageTemplateDeleted
+  | PostMessageClipboardCopied
+  | PostMessageClipboardCopyFailed;
 
 export interface OutgoingReady {
   type: "WIDGET_READY";
@@ -217,6 +229,12 @@ export interface OutgoingLoadTemplate {
   payload: { id: string };
 }
 
+/** Ask parent to copy text (Wix: wixWindowFrontend.copyToClipboard(payload.text)). */
+export interface OutgoingCopyToClipboard {
+  type: "COPY_TO_CLIPBOARD";
+  payload: { text: string };
+}
+
 export type OutgoingMessage =
   | OutgoingReady
   | OutgoingComplete
@@ -225,7 +243,8 @@ export type OutgoingMessage =
   | OutgoingRequestTemplates
   | OutgoingSaveTemplate
   | OutgoingDeleteTemplate
-  | OutgoingLoadTemplate;
+  | OutgoingLoadTemplate
+  | OutgoingCopyToClipboard;
 
 export const THEME_PRESETS: Record<ThemePreset, Partial<TimerConfig>> = {
   "minimal-white": {

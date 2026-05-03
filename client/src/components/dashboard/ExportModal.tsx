@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Download, Info, Check } from "lucide-react";
 import { useTimerStore } from "@/lib/store";
+import { copyTextViaParentFrame } from "@/lib/clipboardBridge";
 import { generateExportHtml, type Breakpoint } from "@/lib/exportHtml";
 import type { TimerConfig } from "@shared/schema";
 
@@ -40,13 +41,30 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
   }, [open]);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(html);
+    let copiedOk = false;
+
+    const parentResult = await copyTextViaParentFrame(html);
+    if (parentResult === "copied") {
+      copiedOk = true;
+    } else if (!copiedOk) {
+      try {
+        await navigator.clipboard.writeText(html);
+        copiedOk = true;
+      } catch {
+        copiedOk = false;
+      }
+    }
+
+    if (copiedOk) {
       setCopied(true);
       toast({ title: "HTML copied", description: "Paste it into any iframe on your site." });
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast({ title: "Copy failed", description: "Please select the HTML and copy manually.", variant: "destructive" });
+    } else {
+      toast({
+        title: "Copy failed",
+        description: "Please select the HTML and copy manually.",
+        variant: "destructive",
+      });
     }
   };
 
